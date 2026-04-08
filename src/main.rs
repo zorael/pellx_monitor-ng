@@ -13,8 +13,8 @@ fn main() {
 
 fn run_loop() {
     let mut source: Box<dyn source::InputSource> = Box::new(source::MockInputSource::new(24));
-
     let notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>> = &mut Vec::new();
+
     notifiers.push(Box::new(notify::Notifier::new(
         backend::PrintlnBackend::new(0, "println"),
         false,
@@ -27,6 +27,11 @@ fn run_loop() {
 
     loop {
         ctx.now = time::Instant::now();
+
+        if at_least_one_notifier_is_due_for_retry(notifiers, &ctx.now) {
+            send_retries(notifiers);
+        }
+
         let reading = source.read();
         let reading_changed = reading != ctx.previous_reading;
         let is_first_iteration = ctx.loop_iteration == 0;
@@ -98,16 +103,16 @@ fn run_loop() {
                         && t.elapsed() < startup_duration
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_startup_failed(notifiers, &ctx);
+                        send_startup_failed_to_all(notifiers, &ctx);
                         end_loop(&mut ctx, interval);
                         continue;
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_alert(notifiers, &ctx);
+                    send_alert_to_all(notifiers, &ctx);
                 } else {
                     // We have been HIGH for a while, this is a reminder
-                    send_reminder(notifiers, &ctx);
+                    send_reminder_to_all(notifiers, &ctx);
                 }
 
                 end_loop(&mut ctx, interval);
@@ -122,66 +127,181 @@ fn end_loop(ctx: &mut context::Context, interval: time::Duration) {
     thread::sleep(interval);
 }
 
-fn send_startup_failed(
+fn at_least_one_notifier_is_due_for_retry(
+    notifiers: &Vec<Box<dyn notify::StatefulNotifier>>,
+    now: &time::Instant,
+) -> bool {
+    for n in notifiers {
+        match n.state().time_of_next_retry {
+            Some(t) if t >= *now => {
+                // The time is in the future, not yet due for retry
+                continue;
+            }
+            Some(_) => {
+                // Due for retry
+                return true;
+            }
+            None => {
+                // No retry scheduled
+                continue;
+            }
+        }
+    }
+
+    false
+}
+
+fn send_startup_failed_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
-) {
+) -> notify::NotificationResult {
+    let mut result = notify::NotificationResult {
+        total: notifiers.len(),
+        ..Default::default()
+    };
+
     for n in notifiers {
-        match n.send_startup_failed(ctx) {
-            notify::SendResult::Success => {}
-            notify::SendResult::Failure => {
-                let mut state = n.state_mut();
-                state.previous_failed_context = Some(ctx.clone());
-            }
+        match send_startup_failed_to_one(n, &ctx) {
+            notify::SendResult::Success => result.success += 1,
+            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::TryAgainLater => result.try_again_later += 1,
         }
     }
+
+    result
 }
 
-fn send_alert(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, ctx: &context::Context) {
-    for n in notifiers {
-        match n.send_alert(ctx) {
-            notify::SendResult::Success => {}
-            notify::SendResult::Failure => {
-                let mut state = n.state_mut();
-                state.previous_failed_context = Some(ctx.clone());
-            }
+fn send_startup_failed_to_one(
+    n: &mut Box<dyn notify::StatefulNotifier>,
+    ctx: &context::Context,
+) -> notify::SendResult {
+    let result = n.send_startup_failed(ctx);
+
+    match result {
+        notify::SendResult::Success => {
+            n.state_mut().reset();
         }
-    }
+        notify::SendResult::Failure => {
+            n.state_mut().on_failure(ctx);
+            n.state_mut().bump_time_of_next_retry();
+        }
+        notify::SendResult::TryAgainLater => {}
+    };
+
+    result
 }
 
-fn send_reminder(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, ctx: &context::Context) {
-    for n in notifiers {
-        if !n.state().next_reminder_is_due() {
-            continue;
-        }
+fn send_alert_to_all(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &context::Context,
+) -> notify::NotificationResult {
+    let mut result = notify::NotificationResult {
+        total: notifiers.len(),
+        ..Default::default()
+    };
 
-        n.send_reminder(ctx);
+    for n in notifiers {
+        match send_alert_to_one(n, &ctx) {
+            notify::SendResult::Success => result.success += 1,
+            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::TryAgainLater => result.try_again_later += 1,
+        }
     }
+
+    result
+}
+
+fn send_alert_to_one(
+    n: &mut Box<dyn notify::StatefulNotifier>,
+    ctx: &context::Context,
+) -> notify::SendResult {
+    let result = n.send_alert(ctx);
+
+    match result {
+        notify::SendResult::Success => {
+            n.state_mut().reset();
+        }
+        notify::SendResult::Failure => {
+            n.state_mut().on_failure(ctx);
+            n.state_mut().bump_time_of_next_retry();
+        }
+        notify::SendResult::TryAgainLater => {}
+    };
+
+    result
+}
+
+fn send_reminder_to_all(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &context::Context,
+) -> notify::NotificationResult {
+    let mut result = notify::NotificationResult {
+        total: notifiers.len(),
+        ..Default::default()
+    };
+
+    for n in notifiers {
+        match send_reminder_to_one(n, &ctx) {
+            notify::SendResult::Success => result.success += 1,
+            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::TryAgainLater => result.try_again_later += 1,
+        }
+    }
+
+    result
+}
+
+fn send_reminder_to_one(
+    n: &mut Box<dyn notify::StatefulNotifier>,
+    ctx: &context::Context,
+) -> notify::SendResult {
+    let result = n.send_reminder(ctx);
+
+    match result {
+        notify::SendResult::Success => {
+            n.state_mut().on_reminder_success();
+            n.state_mut().bump_time_of_next_reminder();
+        }
+        notify::SendResult::Failure => {
+            n.state_mut().on_failure(ctx);
+            n.state_mut().bump_time_of_next_retry();
+        }
+        notify::SendResult::TryAgainLater => {}
+    };
+
+    result
 }
 
 fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
+    let now = time::Instant::now();
+
     for n in notifiers {
-        if !n.state().next_retry_is_due() {
-            continue;
+        match n.state().time_of_next_retry {
+            Some(t) if t >= now => {
+                // The time is in the future, not yet due for retry
+                continue;
+            }
+            Some(_) => {
+                // Due for retry
+            }
+            None => {
+                // No retry scheduled
+                continue;
+            }
         }
 
-        let previous_failed_ctx = match &n.state().previous_failed_context {
-            Some(ctx) => ctx.clone(),
-            None => continue,
+        let Some(previous_failed_ctx) = &n.state().previous_failed_context.clone() else {
+            eprintln!(
+                "Error: retry calculated due but {} is missing a failed context",
+                n.name()
+            );
+            continue;
         };
 
         match previous_failed_ctx.time_of_startup_from_low {
-            Some(t) if t.elapsed() >= time::Duration::from_secs(10) => {
+            Some(t) if t.elapsed() < time::Duration::from_secs(10) => {
                 // This was a startup failure
-                match n.send_startup_failed(&previous_failed_ctx) {
-                    notify::SendResult::Success => {
-                        n.state_mut().previous_failed_context = None;
-                    }
-                    notify::SendResult::Failure => {
-                        let state = n.state_mut();
-                        state.previous_failed_context = Some(previous_failed_ctx.clone());
-                    }
-                }
+                let _ = send_startup_failed_to_one(n, &previous_failed_ctx);
                 continue;
             }
             Some(_) => {
@@ -193,36 +313,20 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
             }
         }
 
-        match n.state().time_of_last_reminder {
-            Some(t) if t.elapsed() >= time::Duration::from_secs(10) => {
+        match n.state().time_of_next_reminder {
+            Some(t) if t >= now => {
                 // This was a reminder failure
-                match n.send_reminder(&previous_failed_ctx) {
-                    notify::SendResult::Success => {
-                        n.state_mut().time_of_last_reminder = None;
-                    }
-                    notify::SendResult::Failure => {
-                        let state = n.state_mut();
-                        state.time_of_last_reminder = Some(time::Instant::now());
-                    }
-                }
+                let _ = send_reminder_to_one(n, &previous_failed_ctx);
                 continue;
             }
             Some(t) => {
                 // This was a reminder failure but we should not yet send a new one
                 continue;
             }
-            None => {
-                // This was an alert failure
-                match n.send_alert(&previous_failed_ctx) {
-                    notify::SendResult::Success => {
-                        n.state_mut().time_of_last_alert = None;
-                    }
-                    notify::SendResult::Failure => {
-                        let state = n.state_mut();
-                        state.time_of_last_alert = Some(time::Instant::now());
-                    }
-                }
-            }
+            None => {}
         }
+
+        // This was an alert failure
+        let _ = send_alert_to_one(n, &previous_failed_ctx);
     }
 }

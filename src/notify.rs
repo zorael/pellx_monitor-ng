@@ -86,41 +86,72 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 }
 
 pub struct NotifierState {
-    pub time_of_last_alert: Option<time::Instant>,
-    pub time_of_last_reminder: Option<time::Instant>,
-    pub time_of_last_retry: Option<time::Instant>,
     pub previous_failed_context: Option<context::Context>,
+    pub time_of_next_reminder: Option<time::Instant>,
+    pub time_of_next_retry: Option<time::Instant>,
+    pub reminder_count: u32,
     pub retry_count: u32,
 }
 
 impl NotifierState {
     pub fn new() -> Self {
         Self {
-            time_of_last_alert: None,
-            time_of_last_reminder: None,
-            time_of_last_retry: None,
             previous_failed_context: None,
+            time_of_next_reminder: None,
+            time_of_next_retry: None,
+            reminder_count: 0,
             retry_count: 0,
         }
     }
 
-    pub fn next_reminder_is_due(&self) -> bool {
-        match (self.time_of_last_reminder, self.time_of_last_alert) {
-            (Some(reminder), Some(alert)) => {
-                reminder.elapsed() >= time::Duration::from_secs(5)
-                    && alert.elapsed() >= time::Duration::from_secs(5)
-            }
-            (Some(reminder), None) => reminder.elapsed() >= time::Duration::from_secs(5),
-            (None, Some(alert)) => alert.elapsed() >= time::Duration::from_secs(5),
-            (None, None) => true,
-        }
+    pub fn reset(&mut self) {
+        self.previous_failed_context = None;
+        self.time_of_next_reminder = None;
+        self.time_of_next_retry = None;
+        self.reminder_count = 0;
+        self.retry_count = 0;
     }
 
-    pub fn next_retry_is_due(&self) -> bool {
-        match self.time_of_last_retry {
-            Some(t) => t.elapsed() >= time::Duration::from_secs(5),
-            None => true,
-        }
+    pub fn on_reminder_success(&mut self) {
+        self.previous_failed_context = None;
+        self.time_of_next_retry = None;
+        self.reminder_count += 1;
+    }
+
+    pub fn on_failure(&mut self, ctx: &context::Context) {
+        self.previous_failed_context = Some(ctx.clone());
+    }
+
+    pub fn bump_time_of_next_reminder(&mut self) {
+        const HOUR: time::Duration = time::Duration::from_secs(3600);
+
+        let multiplier = match self.reminder_count {
+            0 => 3,
+            1 => 6,
+            2 => 12,
+            3 => 24,
+            4 => 24,
+            5 => 48,
+            6 => 48,
+            7 => 96,
+            _ => 168,
+        };
+
+        self.time_of_next_reminder = Some(time::Instant::now() + multiplier * HOUR);
+    }
+
+    pub fn bump_time_of_next_retry(&mut self) {
+        const SECOND: time::Duration = time::Duration::from_secs(1);
+
+        let multiplier = match self.retry_count {
+            0..=3 => 5,
+            4..=6 => 15,
+            7..=9 => 30,
+            10..=12 => 60,
+            _ => 120,
+        };
+
+        self.time_of_next_retry = Some(time::Instant::now() + multiplier * SECOND);
     }
 }
 
@@ -140,4 +171,13 @@ pub trait StateCarrier {
 pub enum SendResult {
     Success,
     Failure,
+    TryAgainLater,
+}
+
+#[derive(Default)]
+pub struct NotificationResult {
+    pub total: usize,
+    pub success: usize,
+    pub failure: usize,
+    pub try_again_later: usize,
 }
