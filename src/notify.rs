@@ -156,6 +156,7 @@ impl NotifierState {
 }
 
 pub trait NotificationSender {
+    #[allow(unused)]
     fn id(&self) -> usize;
     fn name(&self) -> &str;
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult;
@@ -171,11 +172,14 @@ pub trait StateCarrier {
 pub enum SendResult {
     Success,
     Failure,
+
+    #[allow(unused)]
     TryAgainLater,
 }
 
 #[derive(Default)]
 pub struct NotificationResult {
+    #[allow(unused)]
     pub total: usize,
     pub success: usize,
     pub failure: usize,

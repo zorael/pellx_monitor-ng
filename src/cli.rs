@@ -1,7 +1,4 @@
 use clap::Parser;
-use std::time;
-
-use crate::defaults;
 
 #[derive(Parser)]
 pub struct Cli {

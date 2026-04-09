@@ -8,7 +8,6 @@ mod settings;
 mod source;
 
 use clap::Parser;
-use rppal::gpio;
 use std::path;
 use std::process;
 use std::thread;
@@ -72,6 +71,14 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         source::ChoiceOfInputSource::Dummy => Box::new(source::MockInputSource::new()),
     };
 
+    match source.init() {
+        Ok(()) => {}
+        Err(err) => {
+            eprintln!("Failed to initialize input source! {err}");
+            return process::ExitCode::FAILURE;
+        }
+    }
+
     let notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>> = &mut Vec::new();
 
     if settings.println.enabled {
@@ -101,29 +108,29 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         if reading_changed {
             // Reset
             match reading {
-                gpio::Level::Low => {
+                source::Reading::Low => {
                     ctx.went_low_at = Some(ctx.now);
                     ctx.time_of_startup_from_low = None;
                     ctx.startup_succeeded = false;
                 }
-                gpio::Level::High => {
+                source::Reading::High => {
                     ctx.went_high_at = Some(ctx.now);
                 }
             }
 
             // Update
-            ctx.previous_reading = reading;
+            ctx.previous_reading = reading.clone();
             let _ = ctx.time_of_state_change.insert(ctx.now);
         }
 
-        if ctx.time_of_state_change.is_none() && reading == gpio::Level::Low {
+        if ctx.time_of_state_change.is_none() && reading == source::Reading::Low {
             // Program was just started, state has never changed from low
             end_loop(&mut ctx, settings.monitor.loop_interval);
             continue;
         }
 
         match reading {
-            gpio::Level::Low => {
+            source::Reading::Low => {
                 if ctx.startup_succeeded {
                     // All is well
                     end_loop(&mut ctx, settings.monitor.loop_interval);
@@ -152,7 +159,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                 end_loop(&mut ctx, settings.monitor.loop_interval);
                 continue;
             }
-            gpio::Level::High => {
+            source::Reading::High => {
                 if reading_changed || is_first_iteration {
                     println!("-- NEW HIGH --");
 
@@ -218,7 +225,7 @@ fn send_startup_failed_to_all(
     };
 
     for n in notifiers {
-        match send_startup_failed_to_one(n, &ctx) {
+        match send_startup_failed_to_one(n, ctx) {
             notify::SendResult::Success => result.success += 1,
             notify::SendResult::Failure => result.failure += 1,
             notify::SendResult::TryAgainLater => result.try_again_later += 1,
@@ -258,7 +265,7 @@ fn send_alert_to_all(
     };
 
     for n in notifiers {
-        match send_alert_to_one(n, &ctx) {
+        match send_alert_to_one(n, ctx) {
             notify::SendResult::Success => result.success += 1,
             notify::SendResult::Failure => result.failure += 1,
             notify::SendResult::TryAgainLater => result.try_again_later += 1,
@@ -298,7 +305,7 @@ fn send_reminder_to_all(
     };
 
     for n in notifiers {
-        match send_reminder_to_one(n, &ctx) {
+        match send_reminder_to_one(n, ctx) {
             notify::SendResult::Success => result.success += 1,
             notify::SendResult::Failure => result.failure += 1,
             notify::SendResult::TryAgainLater => result.try_again_later += 1,
@@ -358,12 +365,12 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
         match previous_failed_ctx.time_of_startup_from_low {
             Some(t) if t.elapsed() < time::Duration::from_secs(10) => {
                 // This was a startup failure
-                let _ = send_startup_failed_to_one(n, &previous_failed_ctx);
+                let _ = send_startup_failed_to_one(n, previous_failed_ctx);
                 continue;
             }
             Some(_) => {
                 // This may be a startup failure, we don't know.
-                // See if it is a reminder or an alert below.
+                // See f it is a reminder or an alert below.
             }
             None => {
                 // This is a very rare first-iteration HIGH failure
@@ -373,10 +380,10 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
         match n.state().time_of_next_reminder {
             Some(t) if t >= now => {
                 // This was a reminder failure
-                let _ = send_reminder_to_one(n, &previous_failed_ctx);
+                let _ = send_reminder_to_one(n, previous_failed_ctx);
                 continue;
             }
-            Some(t) => {
+            Some(_) => {
                 // This was a reminder failure but we should not yet send a new one
                 continue;
             }
@@ -384,6 +391,6 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
         }
 
         // This was an alert failure
-        let _ = send_alert_to_one(n, &previous_failed_ctx);
+        let _ = send_alert_to_one(n, previous_failed_ctx);
     }
 }

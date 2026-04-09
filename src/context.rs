@@ -1,5 +1,6 @@
-use rppal::gpio;
 use std::time;
+
+use crate::source;
 
 #[derive(Debug, Clone)]
 pub struct Context {
@@ -8,9 +9,9 @@ pub struct Context {
     pub went_high_at: Option<time::Instant>,
     pub time_of_state_change: Option<time::Instant>,
     pub time_of_startup_from_low: Option<time::Instant>,
-    pub previous_reading: gpio::Level,
+    pub previous_reading: source::Reading,
     pub startup_succeeded: bool,
-    pub start: time::Instant,
+    pub _start: time::Instant,
     pub now: time::Instant,
 }
 
@@ -22,9 +23,9 @@ impl Context {
             went_high_at: None,
             time_of_state_change: None,
             time_of_startup_from_low: None,
-            previous_reading: gpio::Level::Low,
+            previous_reading: source::Reading::Low,
             startup_succeeded: false,
-            start,
+            _start: start,
             now: start,
         }
     }

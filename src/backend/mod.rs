@@ -1,6 +1,7 @@
 use crate::context;
 
 pub trait Backend {
+    #[allow(unused)]
     fn id(&self) -> usize;
     fn name(&self) -> &str;
 
@@ -34,15 +35,15 @@ impl Backend for PrintlnBackend {
         &self.name
     }
 
-    fn compose_alert(&self, ctx: &context::Context) -> &str {
+    fn compose_alert(&self, _ctx: &context::Context) -> &str {
         "ALERT"
     }
 
-    fn compose_reminder(&self, ctx: &context::Context) -> &str {
+    fn compose_reminder(&self, _ctx: &context::Context) -> &str {
         "REMINDER"
     }
 
-    fn compose_startup_failed(&self, ctx: &context::Context) -> &str {
+    fn compose_startup_failed(&self, _ctx: &context::Context) -> &str {
         "STARTUP FAILED"
     }
 
