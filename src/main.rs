@@ -1,27 +1,84 @@
 mod backend;
+mod cli;
+mod config;
 mod context;
+mod defaults;
 mod notify;
+mod settings;
 mod source;
 
+use clap::Parser;
 use rppal::gpio;
+use std::path;
+use std::process;
 use std::thread;
 use std::time;
 
-fn main() {
-    run_loop();
+fn print_banner() {
+    println!(
+        "{} v{} | copyright (c) 2026 {}\n$ git clone {}",
+        defaults::program_metadata::NAME,
+        defaults::program_metadata::VERSION,
+        defaults::program_metadata::AUTHORS,
+        defaults::program_metadata::SOURCE_REPOSITORY
+    );
 }
 
-fn run_loop() {
-    let mut source: Box<dyn source::InputSource> = Box::new(source::MockInputSource::new(24));
+fn main() -> process::ExitCode {
+    let cli = cli::Cli::parse();
+
+    if cli.version {
+        print_banner();
+        println!(
+            "\nThis project is licensed under {}, at your option.",
+            defaults::program_metadata::LICENSE
+        );
+        return process::ExitCode::SUCCESS;
+    }
+
+    let config = match config::Config::load(&path::PathBuf::from(
+        defaults::program_metadata::CONFIG_FILENAME,
+    )) {
+        Ok(config) => config,
+        Err(err) => {
+            eprintln!("Failed to load config: {err}");
+            return process::ExitCode::FAILURE;
+        }
+    };
+
+    let config = match config {
+        Some(config) => config,
+        None => {
+            eprintln!(
+                "No config file found at {}, using defaults",
+                defaults::program_metadata::CONFIG_FILENAME
+            );
+            config::Config::default()
+        }
+    };
+
+    let mut settings = settings::Settings::default();
+    settings.apply_config(&config);
+    settings.apply_cli(&cli);
+
+    run_loop(settings)
+}
+
+fn run_loop(settings: settings::Settings) -> process::ExitCode {
+    let mut source: Box<dyn source::InputSource> = match settings.monitor.source {
+        source::ChoiceOfInputSource::Gpio => {
+            Box::new(source::GpioInputSource::new(settings.gpio.pin))
+        }
+        source::ChoiceOfInputSource::Dummy => Box::new(source::MockInputSource::new()),
+    };
+
     let notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>> = &mut Vec::new();
 
-    notifiers.push(Box::new(notify::Notifier::new(
-        backend::PrintlnBackend::new(0, "println"),
-        false,
-    )));
+    if settings.println.enabled {
+        let n = notify::Notifier::new(backend::PrintlnBackend::new(0, "println"), settings.dry_run);
 
-    let interval = time::Duration::from_secs(1);
-    let startup_duration = time::Duration::from_secs(7);
+        notifiers.push(Box::new(n));
+    }
 
     let mut ctx = context::Context::new(time::Instant::now());
 
@@ -61,7 +118,7 @@ fn run_loop() {
 
         if ctx.time_of_state_change.is_none() && reading == gpio::Level::Low {
             // Program was just started, state has never changed from low
-            end_loop(&mut ctx, interval);
+            end_loop(&mut ctx, settings.monitor.loop_interval);
             continue;
         }
 
@@ -69,7 +126,7 @@ fn run_loop() {
             gpio::Level::Low => {
                 if ctx.startup_succeeded {
                     // All is well
-                    end_loop(&mut ctx, interval);
+                    end_loop(&mut ctx, settings.monitor.loop_interval);
                     continue;
                 }
 
@@ -81,18 +138,18 @@ fn run_loop() {
                         // (provided startup_duration > 0)
                         println!("-- NEW LOW --");
                         ctx.time_of_startup_from_low = Some(ctx.now);
-                        end_loop(&mut ctx, interval);
+                        end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
                 };
 
-                if time_of_startup_from_low.elapsed() >= startup_duration {
+                if time_of_startup_from_low.elapsed() >= settings.monitor.max_allowed_startup_time {
                     // Startup succeeded, can notify success
                     println!("--> notify LOW");
                     ctx.startup_succeeded = true;
                 }
 
-                end_loop(&mut ctx, interval);
+                end_loop(&mut ctx, settings.monitor.loop_interval);
                 continue;
             }
             gpio::Level::High => {
@@ -100,11 +157,11 @@ fn run_loop() {
                     println!("-- NEW HIGH --");
 
                     if let Some(t) = ctx.time_of_startup_from_low
-                        && t.elapsed() < startup_duration
+                        && t.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
                         send_startup_failed_to_all(notifiers, &ctx);
-                        end_loop(&mut ctx, interval);
+                        end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
 
@@ -115,7 +172,7 @@ fn run_loop() {
                     send_reminder_to_all(notifiers, &ctx);
                 }
 
-                end_loop(&mut ctx, interval);
+                end_loop(&mut ctx, settings.monitor.loop_interval);
                 continue;
             }
         }

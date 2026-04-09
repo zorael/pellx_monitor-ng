@@ -1,7 +1,10 @@
 [package]
 name = "pellx_monitor-ng"
 version = "0.1.0"
+license = "MIT OR Apache-2.0"
 edition = "2024"
+repository = "https://github.com/zorael/pellx_monitor-ng"
+authors = [ "jr" ]
 
 [dependencies]
 rppal = { version = "0.22" }

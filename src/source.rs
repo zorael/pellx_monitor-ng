@@ -5,6 +5,12 @@ pub trait InputSource {
     fn read(&mut self) -> gpio::Level;
 }
 
+#[derive(Debug)]
+pub enum ChoiceOfInputSource {
+    Gpio,
+    Dummy,
+}
+
 pub struct GpioInputSource {
     pin_number: u8,
     pin: Option<gpio::InputPin>,
@@ -37,7 +43,7 @@ pub struct MockInputSource {
 }
 
 impl MockInputSource {
-    pub fn new(_pin_number: u8) -> Self {
+    pub fn new() -> Self {
         Self { counter: 0 }
     }
 }
