@@ -212,7 +212,10 @@ pub fn compose_startup_failed_message(ctx: &context::Context) -> String {
 
     message.push_str("PellX Monitor Startup Failed\n\n");
 
-    message.push_str(&format!("Time of startup from low: {:?}\n", ctx.time_of_startup_from_low));
+    message.push_str(&format!(
+        "Time of startup from low: {:?}\n",
+        ctx.time_of_startup_from_low
+    ));
 
     message
 }
