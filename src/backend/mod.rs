@@ -1,5 +1,5 @@
+use crate::compose;
 use crate::context;
-use crate::notify;
 
 pub trait Backend {
     #[allow(unused)]
@@ -37,15 +37,15 @@ impl Backend for PrintlnBackend {
     }
 
     fn compose_alert(&self, ctx: &context::Context) -> String {
-        notify::compose_alert_message(ctx)
+        compose::compose_alert_message(ctx)
     }
 
     fn compose_reminder(&self, ctx: &context::Context) -> String {
-        notify::compose_reminder_message(ctx)
+        compose::compose_reminder_message(ctx)
     }
 
     fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        notify::compose_startup_failed_message(ctx)
+        compose::compose_startup_failed_message(ctx)
     }
 
     fn emit(&self, message: &str) -> Result<Option<String>, String> {
