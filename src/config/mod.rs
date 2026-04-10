@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use std::path;
 use std::time;
 
+use crate::source;
+
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
@@ -23,6 +25,8 @@ impl Config {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MonitorConfig {
+    pub source: source::ChoiceOfInputSource,
+
     #[serde(with = "humantime_serde")]
     pub loop_interval: Option<time::Duration>,
 

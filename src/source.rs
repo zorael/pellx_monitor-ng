@@ -1,18 +1,20 @@
 use rppal::gpio;
+use serde::{Deserialize, Serialize};
 
 pub trait InputSource {
     fn init(&mut self) -> Result<(), String>;
     fn read(&mut self) -> Reading;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub enum ChoiceOfInputSource {
     #[allow(unused)]
+    #[default]
     Gpio,
     Dummy,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Reading {
     Low,
     High,

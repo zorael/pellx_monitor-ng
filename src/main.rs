@@ -58,7 +58,14 @@ fn main() -> process::ExitCode {
 
     let mut settings = settings::Settings::default();
     settings.apply_config(&config);
-    settings.apply_cli(&cli);
+
+    match settings.apply_cli(&cli) {
+        Ok(()) => {}
+        Err(err) => {
+            eprintln!("Failed to apply CLI arguments: {err}");
+            return process::ExitCode::FAILURE;
+        }
+    }
 
     run_loop(settings)
 }
@@ -79,7 +86,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         }
     }
 
-    let notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>> = &mut Vec::new();
+    let mut notifiers: Vec<Box<dyn notify::StatefulNotifier>> = Vec::new();
 
     if settings.println.enabled {
         let n = notify::Notifier::new(backend::PrintlnBackend::new(0, "println"), settings.dry_run);
@@ -92,8 +99,8 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
     loop {
         ctx.now = time::Instant::now();
 
-        if at_least_one_notifier_is_due_for_retry(notifiers, &ctx.now) {
-            send_retries(notifiers);
+        if at_least_one_notifier_is_due_for_retry(&mut notifiers, &ctx.now) {
+            send_retries(&mut notifiers, &ctx.now);
         }
 
         let reading = source.read();
@@ -119,7 +126,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
             }
 
             // Update
-            ctx.previous_reading = reading.clone();
+            ctx.previous_reading = reading;
             let _ = ctx.time_of_state_change.insert(ctx.now);
         }
 
@@ -167,16 +174,16 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         && t.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_startup_failed_to_all(notifiers, &ctx);
+                        send_startup_failed_to_all(&mut notifiers, &ctx);
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_alert_to_all(notifiers, &ctx);
+                    send_alert_to_all(&mut notifiers, &ctx);
                 } else {
                     // We have been HIGH for a while, this is a reminder
-                    send_reminder_to_all(notifiers, &ctx);
+                    send_reminder_to_all(&mut notifiers, &ctx);
                 }
 
                 end_loop(&mut ctx, settings.monitor.loop_interval);
@@ -192,7 +199,7 @@ fn end_loop(ctx: &mut context::Context, interval: time::Duration) {
 }
 
 fn at_least_one_notifier_is_due_for_retry(
-    notifiers: &Vec<Box<dyn notify::StatefulNotifier>>,
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     now: &time::Instant,
 ) -> bool {
     for n in notifiers {
@@ -319,6 +326,25 @@ fn send_reminder_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
 ) -> notify::SendResult {
+    match n.state().time_of_next_reminder {
+        Some(t) if t > ctx.now => {
+            // The time of next reminder is in the future; not yet due
+            return notify::SendResult::TryAgainLater;
+        }
+        Some(_) => {
+            // Due for reminder, drop down
+        }
+        None => {
+            // No reminder scheduled? This should not happen
+            eprintln!(
+                "Logic error: send_reminder_to_one called on notifier {} \
+                but it is missing a time_of_next_reminder",
+                n.name()
+            );
+            return notify::SendResult::Failure;
+        }
+    }
+
     let result = n.send_reminder(ctx);
 
     match result {
@@ -336,12 +362,10 @@ fn send_reminder_to_one(
     result
 }
 
-fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
-    let now = time::Instant::now();
-
+fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &time::Instant) {
     for n in notifiers {
         match n.state().time_of_next_retry {
-            Some(t) if t >= now => {
+            Some(t) if t >= *now => {
                 // The time is in the future, not yet due for retry
                 continue;
             }
@@ -378,7 +402,7 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>) {
         }
 
         match n.state().time_of_next_reminder {
-            Some(t) if t >= now => {
+            Some(t) if t < *now => {
                 // This was a reminder failure
                 let _ = send_reminder_to_one(n, previous_failed_ctx);
                 continue;

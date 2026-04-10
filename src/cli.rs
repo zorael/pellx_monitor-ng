@@ -2,6 +2,9 @@ use clap::Parser;
 
 #[derive(Parser)]
 pub struct Cli {
+    #[arg(long = "source")]
+    pub source: Option<String>,
+
     #[arg(short = 'v', long)]
     pub verbose: bool,
 

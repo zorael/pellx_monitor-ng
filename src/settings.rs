@@ -23,10 +23,27 @@ impl Settings {
         self.println.apply_config(&config.println);
     }
 
-    pub fn apply_cli(&mut self, cli: &cli::Cli) {
+    pub fn apply_cli(&mut self, cli: &cli::Cli) -> Result<(), String> {
         self.verbose = cli.verbose;
         self.debug = cli.debug;
         self.dry_run = cli.dry_run;
+
+        match &cli.source {
+            Some(source) if source == "gpio" => {
+                println!("Using GPIO input source");
+                self.monitor.source = source::ChoiceOfInputSource::Gpio;
+            }
+            Some(source) if source == "dummy" => {
+                println!("Using dummy input source");
+                self.monitor.source = source::ChoiceOfInputSource::Dummy;
+            }
+            Some(_) => {
+                return Err("invalid input source specified".to_string());
+            }
+            None => {}
+        }
+
+        Ok(())
     }
 }
 
