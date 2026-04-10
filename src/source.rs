@@ -1,3 +1,4 @@
+use clap::ValueEnum;
 use rppal::gpio;
 use serde::{Deserialize, Serialize};
 
@@ -6,7 +7,7 @@ pub trait InputSource {
     fn read(&mut self) -> Reading;
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, ValueEnum)]
 pub enum ChoiceOfInputSource {
     #[allow(unused)]
     #[default]

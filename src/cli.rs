@@ -1,9 +1,11 @@
 use clap::Parser;
 
+use crate::source;
+
 #[derive(Parser)]
 pub struct Cli {
-    #[arg(long = "source")]
-    pub source: Option<String>,
+    #[arg(long = "source", value_enum, ignore_case = true)]
+    pub source: Option<source::ChoiceOfInputSource>,
 
     #[arg(short = 'v', long)]
     pub verbose: bool,
