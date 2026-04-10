@@ -1,13 +1,14 @@
 use crate::context;
+use crate::notify;
 
 pub trait Backend {
     #[allow(unused)]
     fn id(&self) -> usize;
     fn name(&self) -> &str;
 
-    fn compose_alert(&self, ctx: &context::Context) -> &str;
-    fn compose_reminder(&self, ctx: &context::Context) -> &str;
-    fn compose_startup_failed(&self, ctx: &context::Context) -> &str;
+    fn compose_alert(&self, ctx: &context::Context) -> String;
+    fn compose_reminder(&self, ctx: &context::Context) -> String;
+    fn compose_startup_failed(&self, ctx: &context::Context) -> String;
 
     fn emit(&self, message: &str) -> Result<Option<String>, String>;
 }
@@ -35,16 +36,16 @@ impl Backend for PrintlnBackend {
         &self.name
     }
 
-    fn compose_alert(&self, _ctx: &context::Context) -> &str {
-        "ALERT"
+    fn compose_alert(&self, ctx: &context::Context) -> String {
+        notify::compose_alert_message(ctx)
     }
 
-    fn compose_reminder(&self, _ctx: &context::Context) -> &str {
-        "REMINDER"
+    fn compose_reminder(&self, ctx: &context::Context) -> String {
+        notify::compose_reminder_message(ctx)
     }
 
-    fn compose_startup_failed(&self, _ctx: &context::Context) -> &str {
-        "STARTUP FAILED"
+    fn compose_startup_failed(&self, ctx: &context::Context) -> String {
+        notify::compose_startup_failed_message(ctx)
     }
 
     fn emit(&self, message: &str) -> Result<Option<String>, String> {
