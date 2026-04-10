@@ -59,14 +59,7 @@ fn main() -> process::ExitCode {
 
     let mut settings = settings::Settings::default();
     settings.apply_config(&config);
-
-    match settings.apply_cli(&cli) {
-        Ok(()) => {}
-        Err(err) => {
-            eprintln!("Failed to apply CLI arguments: {err}");
-            return process::ExitCode::FAILURE;
-        }
-    }
+    settings.apply_cli(&cli);
 
     run_loop(settings)
 }

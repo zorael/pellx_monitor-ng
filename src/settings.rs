@@ -23,7 +23,7 @@ impl Settings {
         self.println.apply_config(&config.println);
     }
 
-    pub fn apply_cli(&mut self, cli: &cli::Cli) -> Result<(), String> {
+    pub fn apply_cli(&mut self, cli: &cli::Cli) {
         self.verbose = cli.verbose;
         self.debug = cli.debug;
         self.dry_run = cli.dry_run;
@@ -31,8 +31,6 @@ impl Settings {
         if let Some(source) = &cli.source {
             self.monitor.source = source.clone();
         }
-
-        Ok(())
     }
 }
 
