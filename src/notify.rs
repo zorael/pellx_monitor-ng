@@ -124,7 +124,6 @@ impl NotifierState {
     }
 
     pub fn reset(&mut self) {
-        //self.previous_failed_context = None;
         self.time_of_next_reminder = None;
         self.time_of_next_retry = None;
         self.reminder_count = 0;
@@ -132,9 +131,9 @@ impl NotifierState {
     }
 
     pub fn on_reminder_success(&mut self) {
-        //self.previous_failed_context = None;
         self.time_of_next_retry = None;
         self.reminder_count += 1;
+        self.retry_count = 0;
     }
 
     pub fn on_failure(&mut self, ctx: &context::Context, message_type: &context::MessageType) {

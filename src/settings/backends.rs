@@ -94,7 +94,7 @@ impl Default for CommandSettings {
     fn default() -> Self {
         Self {
             strings: super::MessageStrings::default(),
-            enabled: true,
+            enabled: false,
             commands: Vec::new(),
             show_response: false,
         }

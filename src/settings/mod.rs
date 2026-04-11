@@ -28,7 +28,11 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn apply_config(&mut self, config: &config::Config) {
+    pub fn apply_config(&mut self, config: Option<&config::Config>) {
+        let Some(config) = config else {
+            return;
+        };
+
         self.monitor.apply_config(&config.monitor);
         self.gpio.apply_config(&config.gpio);
         self.println.apply_config(&config.println);

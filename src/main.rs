@@ -47,17 +47,16 @@ fn main() -> process::ExitCode {
         None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
     };
 
-    let config = match confy::load_path(config_path) {
-        Ok(config) => match config {
-            Some(config) => config,
-            None => {
-                eprintln!(
-                    "No config file found (at {}), using defaults",
-                    defaults::program_metadata::CONFIG_FILENAME
-                );
-                config::Config::default()
-            }
-        },
+    let config = match load_config_file(config_path) {
+        Ok(config) => config,
+        Err(_) if !config_path.exists() && !cli.save => {
+            eprintln!(
+                "No config file found (at {})",
+                defaults::program_metadata::CONFIG_FILENAME
+            );
+            return process::ExitCode::FAILURE;
+        }
+        Err(_) if !config_path.exists() => None,
         Err(err) => {
             eprintln!("Failed to load configuration: {err}");
             let mut src = err.source();
@@ -72,7 +71,7 @@ fn main() -> process::ExitCode {
     };
 
     let mut settings = settings::Settings::default();
-    settings.apply_config(&config);
+    settings.apply_config(config.as_ref());
     settings.apply_cli(&cli);
 
     if cli.save {
@@ -80,6 +79,17 @@ fn main() -> process::ExitCode {
     }
 
     run_loop(settings)
+}
+
+fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
+    if !config_path.exists() {
+        return Ok(None);
+    }
+
+    match confy::load_path(config_path) {
+        Ok(config) => Ok(config),
+        Err(err) => Err(err),
+    }
 }
 
 fn run_loop(settings: settings::Settings) -> process::ExitCode {
@@ -346,6 +356,11 @@ fn send_to_one(
         context::MessageType::StartupSuccess => n.send_startup_success(ctx),
     };
 
+    let oneshot_message_type = match message_type {
+        context::MessageType::StartupSuccess => true,
+        _ => false,
+    };
+
     match result {
         notify::SendResult::Success => {
             if message_type == context::MessageType::Reminder {
@@ -353,7 +368,10 @@ fn send_to_one(
             } else {
                 n.state_mut().reset();
             }
-            n.state_mut().bump_time_of_next_reminder();
+
+            if !oneshot_message_type {
+                n.state_mut().bump_time_of_next_reminder();
+            }
             notify::SendResult::Success
         }
         notify::SendResult::Failure => {
@@ -363,197 +381,6 @@ fn send_to_one(
         }
         notify::SendResult::TryAgainLater => notify::SendResult::TryAgainLater,
     }
-}
-
-#[cfg(false)]
-fn send_startup_success_to_all(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    ctx: &mut context::Context,
-) -> notify::NotificationResult {
-    let mut result = notify::NotificationResult {
-        total: notifiers.len(),
-        ..Default::default()
-    };
-
-    for n in notifiers {
-        match send_startup_success_to_one(n, ctx) {
-            notify::SendResult::Success => result.success += 1,
-            notify::SendResult::Failure => result.failure += 1,
-            notify::SendResult::TryAgainLater => result.try_again_later += 1,
-        }
-    }
-
-    result
-}
-
-#[cfg(false)]
-fn send_startup_success_to_one(
-    n: &mut Box<dyn notify::StatefulNotifier>,
-    ctx: &context::Context,
-) -> notify::SendResult {
-    let result = n.send_startup_success(ctx);
-
-    match result {
-        notify::SendResult::Success => {
-            n.state_mut().reset();
-            n.state_mut().bump_time_of_next_reminder();
-        }
-        notify::SendResult::Failure => {
-            n.state_mut().on_failure(ctx);
-            n.state_mut().bump_time_of_next_retry();
-        }
-        notify::SendResult::TryAgainLater => {}
-    };
-
-    result
-}
-
-#[cfg(false)]
-fn send_startup_failed_to_all(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    ctx: &context::Context,
-) -> notify::NotificationResult {
-    let mut result = notify::NotificationResult {
-        total: notifiers.len(),
-        ..Default::default()
-    };
-
-    for n in notifiers {
-        match send_startup_failed_to_one(n, ctx) {
-            notify::SendResult::Success => result.success += 1,
-            notify::SendResult::Failure => result.failure += 1,
-            notify::SendResult::TryAgainLater => result.try_again_later += 1,
-        }
-    }
-
-    result
-}
-
-#[cfg(false)]
-fn send_startup_failed_to_one(
-    n: &mut Box<dyn notify::StatefulNotifier>,
-    ctx: &context::Context,
-) -> notify::SendResult {
-    let result = n.send_startup_failed(ctx);
-
-    match result {
-        notify::SendResult::Success => {
-            n.state_mut().reset();
-            n.state_mut().bump_time_of_next_reminder();
-        }
-        notify::SendResult::Failure => {
-            n.state_mut().on_failure(ctx);
-            n.state_mut().bump_time_of_next_retry();
-        }
-        notify::SendResult::TryAgainLater => {}
-    };
-
-    result
-}
-
-#[cfg(false)]
-fn send_alert_to_all(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    ctx: &context::Context,
-) -> notify::NotificationResult {
-    let mut result = notify::NotificationResult {
-        total: notifiers.len(),
-        ..Default::default()
-    };
-
-    for n in notifiers {
-        match send_alert_to_one(n, ctx) {
-            notify::SendResult::Success => result.success += 1,
-            notify::SendResult::Failure => result.failure += 1,
-            notify::SendResult::TryAgainLater => result.try_again_later += 1,
-        }
-    }
-
-    result
-}
-
-#[cfg(false)]
-fn send_alert_to_one(
-    n: &mut Box<dyn notify::StatefulNotifier>,
-    ctx: &context::Context,
-) -> notify::SendResult {
-    let result = n.send_alert(ctx);
-
-    match result {
-        notify::SendResult::Success => {
-            n.state_mut().reset();
-            n.state_mut().bump_time_of_next_reminder();
-        }
-        notify::SendResult::Failure => {
-            n.state_mut().on_failure(ctx);
-            n.state_mut().bump_time_of_next_retry();
-        }
-        notify::SendResult::TryAgainLater => {}
-    };
-
-    result
-}
-
-#[cfg(false)]
-fn send_reminder_to_all(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    ctx: &context::Context,
-) -> notify::NotificationResult {
-    let mut result = notify::NotificationResult {
-        total: notifiers.len(),
-        ..Default::default()
-    };
-
-    for n in notifiers {
-        match send_reminder_to_one(n, ctx) {
-            notify::SendResult::Success => result.success += 1,
-            notify::SendResult::Failure => result.failure += 1,
-            notify::SendResult::TryAgainLater => result.try_again_later += 1,
-        }
-    }
-
-    result
-}
-
-#[cfg(false)]
-fn send_reminder_to_one(
-    n: &mut Box<dyn notify::StatefulNotifier>,
-    ctx: &context::Context,
-) -> notify::SendResult {
-    match n.state().time_of_next_reminder {
-        Some(t) if t > ctx.now.instant => {
-            // The time of next reminder is in the future; not yet due
-            return notify::SendResult::TryAgainLater;
-        }
-        Some(_) => {
-            // Due for reminder, drop down
-        }
-        None => {
-            // No reminder scheduled? This should not happen
-            eprintln!(
-                "Logic error: send_reminder_to_one called on notifier {} \
-                but it is missing a time_of_next_reminder",
-                n.name()
-            );
-            return notify::SendResult::Failure;
-        }
-    }
-
-    let result = n.send_reminder(ctx);
-
-    match result {
-        notify::SendResult::Success => {
-            n.state_mut().on_reminder_success();
-            n.state_mut().bump_time_of_next_reminder();
-        }
-        notify::SendResult::Failure => {
-            n.state_mut().on_failure(ctx);
-            n.state_mut().bump_time_of_next_retry();
-        }
-        notify::SendResult::TryAgainLater => {}
-    };
-
-    result
 }
 
 fn send_retries(
