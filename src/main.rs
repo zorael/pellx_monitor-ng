@@ -87,7 +87,7 @@ fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, 
     }
 
     match confy::load_path(config_path) {
-        Ok(config) => Ok(config),
+        Ok(config) => Ok(Some(config)),
         Err(err) => Err(err),
     }
 }
@@ -356,10 +356,7 @@ fn send_to_one(
         context::MessageType::StartupSuccess => n.send_startup_success(ctx),
     };
 
-    let oneshot_message_type = match message_type {
-        context::MessageType::StartupSuccess => true,
-        _ => false,
-    };
+    let oneshot_message_type = matches!(message_type, context::MessageType::StartupSuccess);
 
     match result {
         notify::SendResult::Success => {

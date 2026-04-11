@@ -80,9 +80,15 @@ fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
     out = out.replace("{current_fuzzy_datestamp}", &fuzzy_datestamp_of(&now));
     out = out.replace("{current_time}", &now.format("%H:%M").to_string());
     out = out.replace("{current_date}", &now.format("%Y-%m-%d").to_string());
-    out = out.replace("{fuzzy_datestamp_of_read}", &fuzzy_datestamp_of(&ctx.now.wall));
+    out = out.replace(
+        "{fuzzy_datestamp_of_read}",
+        &fuzzy_datestamp_of(&ctx.now.wall),
+    );
     out = out.replace("{time_of_read}", &ctx.now.wall.format("%H:%M").to_string());
-    out = out.replace("{date_of_read}", &ctx.now.wall.format("%Y-%m-%d").to_string());
+    out = out.replace(
+        "{date_of_read}",
+        &ctx.now.wall.format("%Y-%m-%d").to_string(),
+    );
     out = out.replace("{name}", defaults::program_metadata::NAME);
     out = out.replace("{version}", defaults::program_metadata::VERSION);
     out

@@ -82,23 +82,12 @@ impl BatsignSettings {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct CommandSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
     pub commands: Vec<String>,
     pub show_response: bool,
-}
-
-impl Default for CommandSettings {
-    fn default() -> Self {
-        Self {
-            strings: super::MessageStrings::default(),
-            enabled: false,
-            commands: Vec::new(),
-            show_response: false,
-        }
-    }
 }
 
 impl CommandSettings {
