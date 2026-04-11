@@ -28,6 +28,10 @@ impl SlackSettings {
     }
 
     pub fn sanity_check(&self) -> Result<(), String> {
+        if !self.enabled {
+            return Ok(());
+        }
+
         if self.urls.is_empty() {
             Err("URL must not be empty".to_string())
         } else {
@@ -66,6 +70,10 @@ impl BatsignSettings {
 
 impl BatsignSettings {
     pub fn sanity_check(&self) -> Result<(), String> {
+        if !self.enabled {
+            return Ok(());
+        }
+
         if self.urls.is_empty() {
             Err("URL must not be empty".to_string())
         } else {
@@ -113,6 +121,10 @@ impl CommandSettings {
     }
 
     pub fn sanity_check(&self) -> Result<(), String> {
+        if !self.enabled {
+            return Ok(());
+        }
+
         if self.commands.is_empty() {
             Err("Commands must not be empty".to_string())
         } else {
