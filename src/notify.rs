@@ -51,7 +51,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(&message) {
+        match self.backend.emit(ctx, &message) {
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -66,7 +66,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(&message) {
+        match self.backend.emit(ctx, &message) {
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -81,7 +81,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(&message) {
+        match self.backend.emit(ctx, &message) {
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }

@@ -151,6 +151,17 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         notifiers.push(Box::new(n));
     }
 
+    match settings.sanity_check() {
+        Ok(()) => (),
+        Err(errors) => {
+            eprintln!("Configuration sanity check failed with the following errors:");
+            for error in errors {
+                eprintln!("  - {error}");
+            }
+            return process::ExitCode::FAILURE;
+        }
+    }
+
     let mut ctx = context::Context::new();
 
     loop {

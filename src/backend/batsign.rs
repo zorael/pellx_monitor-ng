@@ -53,7 +53,7 @@ impl super::Backend for BatsignBackend {
         compose::compose_startup_failed_message(ctx, &self.strings)
     }
 
-    fn emit(&self, message: &str) -> Result<Option<String>, String> {
+    fn emit(&self, _ctx: &context::Context, message: &str) -> Result<Option<String>, String> {
         match self.agent.post(&self.url).send(message) {
             Ok(mut r) => match r.body_mut().read_to_string() {
                 Ok(output) => {

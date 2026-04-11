@@ -19,11 +19,19 @@ impl SlackSettings {
         }
 
         if let Some(urls) = &config.urls {
-            self.urls = urls.clone();
+            self.urls = super::trim_vec_of_strings(urls);
         }
 
         if let Some(show_response) = config.show_response {
             self.show_response = show_response;
+        }
+    }
+
+    pub fn sanity_check(&self) -> Result<(), String> {
+        if self.urls.is_empty() {
+            Err("URL must not be empty".to_string())
+        } else {
+            Ok(())
         }
     }
 }
@@ -47,11 +55,21 @@ impl BatsignSettings {
         }
 
         if let Some(urls) = &config.urls {
-            self.urls = urls.clone();
+            self.urls = super::trim_vec_of_strings(urls);
         }
 
         if let Some(show_response) = config.show_response {
             self.show_response = show_response;
+        }
+    }
+}
+
+impl BatsignSettings {
+    pub fn sanity_check(&self) -> Result<(), String> {
+        if self.urls.is_empty() {
+            Err("URL must not be empty".to_string())
+        } else {
+            Ok(())
         }
     }
 }
@@ -86,11 +104,19 @@ impl CommandSettings {
         }
 
         if let Some(commands) = &config.commands {
-            self.commands = commands.clone();
+            self.commands = super::trim_vec_of_strings(commands);
         }
 
         if let Some(show_response) = config.show_response {
             self.show_response = show_response;
+        }
+    }
+
+    pub fn sanity_check(&self) -> Result<(), String> {
+        if self.commands.is_empty() {
+            Err("Commands must not be empty".to_string())
+        } else {
+            Ok(())
         }
     }
 }
@@ -119,5 +145,9 @@ impl PrintlnSettings {
         if let Some(enabled) = config.enabled {
             self.enabled = enabled;
         }
+    }
+
+    pub fn sanity_check(&self) -> Result<(), String> {
+        Ok(())
     }
 }

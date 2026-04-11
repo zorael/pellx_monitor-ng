@@ -46,6 +46,32 @@ impl Settings {
             self.monitor.source = *source;
         }
     }
+
+    pub fn sanity_check(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+
+        if let Err(e) = self.slack.sanity_check() {
+            errors.push(format!("Slack backend: {}", e));
+        }
+
+        if let Err(e) = self.batsign.sanity_check() {
+            errors.push(format!("Batsign backend: {}", e));
+        }
+
+        if let Err(e) = self.command.sanity_check() {
+            errors.push(format!("Command backend: {}", e));
+        }
+
+        if let Err(e) = self.println.sanity_check() {
+            errors.push(format!("Println backend: {}", e));
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
 }
 
 impl Default for Settings {
@@ -132,4 +158,11 @@ impl Default for GpioSettings {
             pin: defaults::gpio::PIN,
         }
     }
+}
+
+fn trim_vec_of_strings(vec: &[String]) -> Vec<String> {
+    vec.iter()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
 }

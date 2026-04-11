@@ -19,5 +19,5 @@ pub trait Backend {
     fn compose_reminder(&self, ctx: &context::Context) -> String;
     fn compose_startup_failed(&self, ctx: &context::Context) -> String;
 
-    fn emit(&self, message: &str) -> Result<Option<String>, String>;
+    fn emit(&self, ctx: &context::Context, message: &str) -> Result<Option<String>, String>;
 }
