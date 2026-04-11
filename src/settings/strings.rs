@@ -1,6 +1,6 @@
 use crate::config;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MessageStrings {
     pub alert_header: String,
     pub alert_body: String,

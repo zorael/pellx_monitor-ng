@@ -11,10 +11,12 @@ pub struct CommandBackend {
 }
 
 impl CommandBackend {
-    pub fn new(id: usize, name: &str, command: &str, show_response: bool) -> Self {
+    pub fn new(id: usize, command: &str, show_response: bool) -> Self {
+        let name = format!("command-{}", id);
+
         Self {
             id,
-            name: name.to_string(),
+            name,
             command: command.to_string(),
             show_response,
         }

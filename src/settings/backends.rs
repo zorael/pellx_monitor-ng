@@ -1,22 +1,11 @@
 use crate::config;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct SlackSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
     pub urls: Vec<String>,
     pub show_response: bool,
-}
-
-impl Default for SlackSettings {
-    fn default() -> Self {
-        Self {
-            strings: super::MessageStrings::default(),
-            enabled: true,
-            urls: Vec::new(),
-            show_response: false,
-        }
-    }
 }
 
 impl SlackSettings {
@@ -39,23 +28,12 @@ impl SlackSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct BatsignSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
     pub urls: Vec<String>,
     pub show_response: bool,
-}
-
-impl Default for BatsignSettings {
-    fn default() -> Self {
-        Self {
-            strings: super::MessageStrings::default(),
-            enabled: true,
-            urls: Vec::new(),
-            show_response: false,
-        }
-    }
 }
 
 impl BatsignSettings {
@@ -78,7 +56,7 @@ impl BatsignSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
@@ -117,7 +95,7 @@ impl CommandSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PrintlnSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,

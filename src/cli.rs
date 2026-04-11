@@ -13,6 +13,9 @@ pub struct Cli {
     )]
     pub source: Option<source::ChoiceOfInputSource>,
 
+    #[arg(long = "save")]
+    pub save: bool,
+
     #[arg(short = 'v', long)]
     pub verbose: bool,
 

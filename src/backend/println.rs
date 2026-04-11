@@ -7,11 +7,10 @@ pub struct PrintlnBackend {
 }
 
 impl PrintlnBackend {
-    pub fn new(id: usize, name: &str) -> Self {
-        Self {
-            id,
-            name: name.to_string(),
-        }
+    pub fn new(id: usize) -> Self {
+        let name = format!("println-{}", id);
+
+        Self { id, name }
     }
 }
 

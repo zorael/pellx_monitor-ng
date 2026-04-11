@@ -3,7 +3,10 @@ mod command;
 mod println;
 mod slack;
 
+pub use batsign::BatsignBackend;
+pub use command::CommandBackend;
 pub use println::PrintlnBackend;
+pub use slack::SlackBackend;
 
 use crate::context;
 

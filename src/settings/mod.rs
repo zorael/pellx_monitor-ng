@@ -1,6 +1,7 @@
 mod backends;
 mod strings;
 
+use std::path;
 use std::time;
 
 pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSettings};
@@ -11,7 +12,7 @@ use crate::config;
 use crate::defaults;
 use crate::source;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone)]
 pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
@@ -20,6 +21,7 @@ pub struct Settings {
     pub batsign: BatsignSettings,
     pub command: CommandSettings,
 
+    pub config_file: path::PathBuf,
     pub verbose: bool,
     pub debug: bool,
     pub dry_run: bool,
@@ -46,7 +48,25 @@ impl Settings {
     }
 }
 
-#[derive(Debug)]
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            monitor: MonitorSettings::default(),
+            gpio: GpioSettings::default(),
+            println: PrintlnSettings::default(),
+            slack: SlackSettings::default(),
+            batsign: BatsignSettings::default(),
+            command: CommandSettings::default(),
+
+            config_file: path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+            verbose: false,
+            debug: false,
+            dry_run: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct MonitorSettings {
     pub source: source::ChoiceOfInputSource,
     pub loop_interval: time::Duration,
@@ -58,7 +78,7 @@ pub struct MonitorSettings {
 impl Default for MonitorSettings {
     fn default() -> Self {
         Self {
-            source: source::ChoiceOfInputSource::Dummy,
+            source: source::ChoiceOfInputSource::Gpio,
             loop_interval: defaults::monitor::LOOP_INTERVAL,
             max_allowed_startup_time: defaults::monitor::MAX_ALLOWED_STARTUP_TIME,
             notification_retry_interval: defaults::monitor::NOTIFICATION_RETRY_INTERVAL,
@@ -87,19 +107,14 @@ impl MonitorSettings {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct GpioSettings {
-    pub strings: strings::MessageStrings,
     pub enabled: bool,
     pub pin: u8,
 }
 
 impl GpioSettings {
     pub fn apply_config(&mut self, config: &config::GpioConfig) {
-        if let Some(strings) = &config.strings {
-            self.strings.apply_config(strings);
-        }
-
         if let Some(enabled) = config.enabled {
             self.enabled = enabled;
         }
@@ -113,7 +128,6 @@ impl GpioSettings {
 impl Default for GpioSettings {
     fn default() -> Self {
         Self {
-            strings: strings::MessageStrings::default(),
             enabled: true,
             pin: defaults::gpio::PIN,
         }

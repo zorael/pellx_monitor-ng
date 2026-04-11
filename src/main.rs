@@ -61,6 +61,10 @@ fn main() -> process::ExitCode {
     settings.apply_config(&config);
     settings.apply_cli(&cli);
 
+    if cli.save {
+        return save_settings(settings);
+    }
+
     run_loop(settings)
 }
 
@@ -81,9 +85,39 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
     }
 
     let mut notifiers: Vec<Box<dyn notify::StatefulNotifier>> = Vec::new();
+    let agent = ureq::Agent::new_with_defaults();
+
+    if settings.slack.enabled {
+        for (i, url) in settings.slack.urls.iter().enumerate() {
+            let backend =
+                backend::SlackBackend::new(i, agent.clone(), url, settings.slack.show_response);
+
+            let n = notify::Notifier::new(backend, settings.dry_run);
+            notifiers.push(Box::new(n));
+        }
+    }
+
+    if settings.batsign.enabled {
+        for (i, url) in settings.batsign.urls.iter().enumerate() {
+            let backend =
+                backend::BatsignBackend::new(i, agent.clone(), url, settings.batsign.show_response);
+
+            let n = notify::Notifier::new(backend, settings.dry_run);
+            notifiers.push(Box::new(n));
+        }
+    }
+
+    if settings.command.enabled {
+        for (i, command) in settings.command.commands.iter().enumerate() {
+            let backend = backend::CommandBackend::new(i, command, settings.command.show_response);
+            let n = notify::Notifier::new(backend, settings.dry_run);
+            notifiers.push(Box::new(n));
+        }
+    }
 
     if settings.println.enabled {
-        let n = notify::Notifier::new(backend::PrintlnBackend::new(0, "println"), settings.dry_run);
+        let backend = backend::PrintlnBackend::new(0);
+        let n = notify::Notifier::new(backend, settings.dry_run);
 
         notifiers.push(Box::new(n));
     }
@@ -410,5 +444,22 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &ti
 
         // This was an alert failure
         let _ = send_alert_to_one(n, previous_failed_ctx);
+    }
+}
+
+fn save_settings(settings: settings::Settings) -> process::ExitCode {
+    let config_file = settings.config_file.clone();
+
+    let config = config::Config::from(settings.clone());
+
+    match confy::store_path(config_file, config) {
+        Ok(()) => {
+            println!("Config saved successfully to {}", settings.config_file.display());
+            process::ExitCode::SUCCESS
+        }
+        Err(err) => {
+            eprintln!("Failed to save configuration to {}: {err}", settings.config_file.display());
+            process::ExitCode::FAILURE
+        }
     }
 }

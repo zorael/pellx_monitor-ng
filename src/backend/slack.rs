@@ -10,10 +10,12 @@ pub struct SlackBackend {
 }
 
 impl SlackBackend {
-    pub fn new(id: usize, name: &str, agent: ureq::Agent, url: &str, show_response: bool) -> Self {
+    pub fn new(id: usize, agent: ureq::Agent, url: &str, show_response: bool) -> Self {
+        let name = format!("slack-{}", id);
+
         Self {
             id,
-            name: name.to_string(),
+            name,
             agent,
             url: url.to_string(),
             show_response,

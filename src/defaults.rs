@@ -4,7 +4,7 @@ pub mod program_metadata {
     pub const NAME: &str = env!("CARGO_PKG_NAME");
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
     pub const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
-    pub const CONFIG_FILENAME: &str = "config.toml";
+    pub const CONFIG_FILENAME: &str = "pellx.toml";
     pub const SOURCE_REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
     pub const LICENSE: &str = env!("CARGO_PKG_LICENSE");
 }
