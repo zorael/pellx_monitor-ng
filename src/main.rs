@@ -9,6 +9,7 @@ mod settings;
 mod source;
 
 use clap::Parser;
+use std::error::Error;
 use std::path;
 use std::process;
 use std::thread;
@@ -27,8 +28,9 @@ fn print_banner() {
 fn main() -> process::ExitCode {
     let cli = cli::Cli::parse();
 
+    print_banner();
+
     if cli.version {
-        print_banner();
         println!(
             "\nThis project is licensed under {}, at your option.",
             defaults::program_metadata::LICENSE
@@ -36,24 +38,36 @@ fn main() -> process::ExitCode {
         return process::ExitCode::SUCCESS;
     }
 
-    let config = match config::Config::load(&path::PathBuf::from(
-        defaults::program_metadata::CONFIG_FILENAME,
-    )) {
-        Ok(config) => config,
-        Err(err) => {
-            eprintln!("Failed to load config: {err}");
+    let config_path = match &cli.config {
+        Some(path) if path.exists() => path,
+        Some(path) => {
+            eprintln!("Specified config file {} does not exist", path.display());
             return process::ExitCode::FAILURE;
         }
+        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
     };
 
-    let config = match config {
-        Some(config) => config,
-        None => {
-            eprintln!(
-                "No config file found at {}, using defaults",
-                defaults::program_metadata::CONFIG_FILENAME
-            );
-            config::Config::default()
+    let config = match confy::load_path(config_path) {
+        Ok(config) => match config {
+            Some(config) => config,
+            None => {
+                eprintln!(
+                    "No config file found (at {}), using defaults",
+                    defaults::program_metadata::CONFIG_FILENAME
+                );
+                config::Config::default()
+            }
+        },
+        Err(err) => {
+            eprintln!("Failed to load configuration: {err}");
+            let mut src = err.source();
+
+            while let Some(e) = src {
+                eprintln!("  caused by: {e}");
+                src = e.source();
+            }
+
+            return process::ExitCode::FAILURE;
         }
     };
 
@@ -454,11 +468,17 @@ fn save_settings(settings: settings::Settings) -> process::ExitCode {
 
     match confy::store_path(config_file, config) {
         Ok(()) => {
-            println!("Config saved successfully to {}", settings.config_file.display());
+            println!(
+                "Config saved successfully to {}",
+                settings.config_file.display()
+            );
             process::ExitCode::SUCCESS
         }
         Err(err) => {
-            eprintln!("Failed to save configuration to {}: {err}", settings.config_file.display());
+            eprintln!(
+                "Failed to save configuration to {}: {err}",
+                settings.config_file.display()
+            );
             process::ExitCode::FAILURE
         }
     }

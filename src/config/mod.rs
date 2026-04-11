@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::path;
 use std::time;
 
 use crate::settings;
@@ -14,16 +13,6 @@ pub struct Config {
     pub batsign: BatsignConfig,
     pub command: CommandConfig,
     pub println: PrintlnConfig,
-}
-
-impl Config {
-    pub fn load(path: &path::Path) -> Result<Option<Self>, confy::ConfyError> {
-        if !path.exists() {
-            return Ok(None);
-        }
-
-        confy::load_path(path).map(Some)
-    }
 }
 
 impl From<settings::Settings> for Config {

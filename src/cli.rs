@@ -1,4 +1,5 @@
 use clap::Parser;
+use std::path;
 
 use crate::source;
 
@@ -12,6 +13,9 @@ pub struct Cli {
         default_value = "dummy"
     )]
     pub source: Option<source::ChoiceOfInputSource>,
+
+    #[arg(long = "config")]
+    pub config: Option<path::PathBuf>,
 
     #[arg(long = "save")]
     pub save: bool,
