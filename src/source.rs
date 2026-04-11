@@ -84,7 +84,7 @@ impl InputSource for MockInputSource {
     fn read(&mut self) -> Reading {
         self.counter += 1;
 
-        if self.counter % 30 < 15 {
+        if self.counter % 20 < 10 {
             Reading::Low
         } else {
             Reading::High

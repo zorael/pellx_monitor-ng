@@ -26,7 +26,6 @@ impl From<settings::Settings> for Config {
                 reminder_interval: Some(settings.monitor.reminder_interval),
             },
             gpio: GpioConfig {
-                enabled: Some(settings.gpio.enabled),
                 pin: Some(settings.gpio.pin),
             },
             slack: SlackConfig {
@@ -76,7 +75,6 @@ pub struct MonitorConfig {
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GpioConfig {
-    pub enabled: Option<bool>,
     pub pin: Option<u8>,
 }
 
@@ -123,6 +121,8 @@ pub struct MessageStrings {
     pub reminder_body: Option<String>,
     pub startup_failed_header: Option<String>,
     pub startup_failed_body: Option<String>,
+    pub startup_success_header: Option<String>,
+    pub startup_success_body: Option<String>,
     pub footer: Option<String>,
 }
 
@@ -135,6 +135,8 @@ impl From<settings::MessageStrings> for MessageStrings {
             reminder_body: Some(settings.reminder_body),
             startup_failed_header: Some(settings.startup_failed_header),
             startup_failed_body: Some(settings.startup_failed_body),
+            startup_success_header: Some(settings.startup_success_header),
+            startup_success_body: Some(settings.startup_success_body),
             footer: Some(settings.footer),
         }
     }

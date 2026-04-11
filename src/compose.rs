@@ -26,6 +26,17 @@ pub fn compose_startup_failed_message(
     )
 }
 
+pub fn compose_startup_success_message(
+    ctx: &context::Context,
+    strings: &settings::MessageStrings,
+) -> String {
+    compose_common(
+        ctx,
+        &strings.startup_success_header,
+        &strings.startup_success_body,
+    )
+}
+
 fn compose_common(ctx: &context::Context, header: &str, body: &str) -> String {
     let mut message = String::new();
 

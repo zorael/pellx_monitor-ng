@@ -8,6 +8,8 @@ pub struct MessageStrings {
     pub reminder_body: String,
     pub startup_failed_header: String,
     pub startup_failed_body: String,
+    pub startup_success_header: String,
+    pub startup_success_body: String,
     pub footer: String,
 }
 
@@ -21,6 +23,8 @@ impl Default for MessageStrings {
             startup_failed_header: "PellX burner startup failed".to_string(),
             startup_failed_body: "It tried to start up but failed at {time_of_failure}."
                 .to_string(),
+            startup_success_header: "PellX burner startup succeeded".to_string(),
+            startup_success_body: "It successfully started up at {time_of_success}.".to_string(),
             footer: "".to_string(),
         }
     }
@@ -52,6 +56,13 @@ impl MessageStrings {
             self.startup_failed_body = startup_failed_body.clone();
         }
 
+        if let Some(startup_success_header) = &config.startup_success_header {
+            self.startup_success_header = startup_success_header.clone();
+        }
+
+        if let Some(startup_success_body) = &config.startup_success_body {
+            self.startup_success_body = startup_success_body.clone();
+        }
         if let Some(footer) = &config.footer {
             self.footer = footer.clone();
         }

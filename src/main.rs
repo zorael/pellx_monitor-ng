@@ -176,7 +176,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         let is_first_iteration = ctx.loop_iteration == 0;
 
         println!(
-            "{}: {reading:?}/{:?} => {is_first_iteration}",
+            "{}: {reading:?}/{:?} => {reading_changed}",
             ctx.loop_iteration, ctx.previous_reading
         );
 
@@ -229,7 +229,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     >= settings.monitor.max_allowed_startup_time
                 {
                     // Startup succeeded, can notify success
-                    println!("--> notify LOW");
+                    send_startup_success_to_all(&mut notifiers, &ctx);
                     ctx.startup_succeeded = true;
                 }
 
@@ -292,6 +292,47 @@ fn at_least_one_notifier_is_due_for_retry(
     false
 }
 
+fn send_startup_success_to_all(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &context::Context,
+) -> notify::NotificationResult {
+    let mut result = notify::NotificationResult {
+        total: notifiers.len(),
+        ..Default::default()
+    };
+
+    for n in notifiers {
+        match send_startup_success_to_one(n, ctx) {
+            notify::SendResult::Success => result.success += 1,
+            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::TryAgainLater => result.try_again_later += 1,
+        }
+    }
+
+    result
+}
+
+fn send_startup_success_to_one(
+    n: &mut Box<dyn notify::StatefulNotifier>,
+    ctx: &context::Context,
+) -> notify::SendResult {
+    let result = n.send_startup_success(ctx);
+
+    match result {
+        notify::SendResult::Success => {
+            n.state_mut().reset();
+            n.state_mut().bump_time_of_next_reminder();
+        }
+        notify::SendResult::Failure => {
+            n.state_mut().on_failure(ctx);
+            n.state_mut().bump_time_of_next_retry();
+        }
+        notify::SendResult::TryAgainLater => {}
+    };
+
+    result
+}
+
 fn send_startup_failed_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
@@ -321,6 +362,7 @@ fn send_startup_failed_to_one(
     match result {
         notify::SendResult::Success => {
             n.state_mut().reset();
+            n.state_mut().bump_time_of_next_reminder();
         }
         notify::SendResult::Failure => {
             n.state_mut().on_failure(ctx);
@@ -361,6 +403,7 @@ fn send_alert_to_one(
     match result {
         notify::SendResult::Success => {
             n.state_mut().reset();
+            n.state_mut().bump_time_of_next_reminder();
         }
         notify::SendResult::Failure => {
             n.state_mut().on_failure(ctx);
@@ -514,4 +557,11 @@ fn save_settings(settings: settings::Settings) -> process::ExitCode {
             process::ExitCode::FAILURE
         }
     }
+}
+
+enum MessageType {
+    Alert,
+    Reminder,
+    StartupFailed,
+    StartupSuccess,
 }

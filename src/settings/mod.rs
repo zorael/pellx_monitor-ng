@@ -135,16 +135,11 @@ impl MonitorSettings {
 
 #[derive(Debug, Clone)]
 pub struct GpioSettings {
-    pub enabled: bool,
     pub pin: u8,
 }
 
 impl GpioSettings {
     pub fn apply_config(&mut self, config: &config::GpioConfig) {
-        if let Some(enabled) = config.enabled {
-            self.enabled = enabled;
-        }
-
         if let Some(pin) = config.pin {
             self.pin = pin;
         }
@@ -154,7 +149,6 @@ impl GpioSettings {
 impl Default for GpioSettings {
     fn default() -> Self {
         Self {
-            enabled: true,
             pin: defaults::gpio::PIN,
         }
     }

@@ -86,6 +86,21 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             Err(_) => SendResult::Failure,
         }
     }
+
+    fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult {
+        let message = self.backend.compose_startup_success(ctx);
+
+        if self.dry_run {
+            println!("DRY RUN: send_startup_success");
+            println!("Message:\n{message}");
+            return SendResult::Success;
+        }
+
+        match self.backend.emit(ctx, &message) {
+            Ok(_) => SendResult::Success,
+            Err(_) => SendResult::Failure,
+        }
+    }
 }
 
 pub struct NotifierState {
@@ -165,6 +180,7 @@ pub trait NotificationSender {
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult;
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult;
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult;
+    fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult;
 }
 
 pub trait StateCarrier {

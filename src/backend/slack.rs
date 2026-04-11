@@ -53,6 +53,10 @@ impl super::Backend for SlackBackend {
         compose::compose_startup_failed_message(ctx, &self.strings)
     }
 
+    fn compose_startup_success(&self, ctx: &context::Context) -> String {
+        compose::compose_startup_success_message(ctx, &self.strings)
+    }
+
     fn emit(&self, _ctx: &context::Context, message: &str) -> Result<Option<String>, String> {
         let json: serde_json::Value = serde_json::from_str(message).map_err(|e| e.to_string())?;
 

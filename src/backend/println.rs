@@ -37,6 +37,10 @@ impl super::Backend for PrintlnBackend {
         compose::compose_startup_failed_message(ctx, &self.strings)
     }
 
+    fn compose_startup_success(&self, ctx: &context::Context) -> String {
+        compose::compose_startup_success_message(ctx, &self.strings)
+    }
+
     fn emit(&self, _ctx: &context::Context, message: &str) -> Result<Option<String>, String> {
         println!("{message}");
         Ok(None)
