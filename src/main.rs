@@ -151,13 +151,13 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         notifiers.push(Box::new(n));
     }
 
-    let mut ctx = context::Context::new(time::Instant::now());
+    let mut ctx = context::Context::new();
 
     loop {
-        ctx.now = time::Instant::now();
+        ctx.now = context::Timestamp::now();
 
-        if at_least_one_notifier_is_due_for_retry(&mut notifiers, &ctx.now) {
-            send_retries(&mut notifiers, &ctx.now, &settings);
+        if at_least_one_notifier_is_due_for_retry(&mut notifiers, &ctx.now.instant) {
+            send_retries(&mut notifiers, &ctx.now.instant, &settings);
         }
 
         let reading = source.read();
@@ -184,7 +184,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
 
             // Update
             ctx.previous_reading = reading;
-            let _ = ctx.time_of_state_change = Some(context::Timestamp::now());
+            ctx.time_of_state_change = Some(context::Timestamp::now());
         }
 
         if ctx.time_of_state_change.is_none() && reading == source::Reading::Low {
@@ -214,7 +214,9 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     }
                 };
 
-                if time_of_startup_from_low.instant.elapsed() >= settings.monitor.max_allowed_startup_time {
+                if time_of_startup_from_low.instant.elapsed()
+                    >= settings.monitor.max_allowed_startup_time
+                {
                     // Startup succeeded, can notify success
                     println!("--> notify LOW");
                     ctx.startup_succeeded = true;
@@ -384,7 +386,7 @@ fn send_reminder_to_one(
     ctx: &context::Context,
 ) -> notify::SendResult {
     match n.state().time_of_next_reminder {
-        Some(t) if t > ctx.now => {
+        Some(t) if t > ctx.now.instant => {
             // The time of next reminder is in the future; not yet due
             return notify::SendResult::TryAgainLater;
         }
@@ -419,7 +421,11 @@ fn send_reminder_to_one(
     result
 }
 
-fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &time::Instant, settings: &settings::Settings) {
+fn send_retries(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    now: &time::Instant,
+    settings: &settings::Settings,
+) {
     for n in notifiers {
         match n.state().time_of_next_retry {
             Some(t) if t >= *now => {

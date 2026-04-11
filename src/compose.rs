@@ -5,43 +5,42 @@ use crate::defaults;
 use crate::settings;
 
 pub fn compose_alert_message(ctx: &context::Context, strings: &settings::MessageStrings) -> String {
-    let mut message = String::new();
-
-    message.push_str("PellX Monitor Alert\n\n");
-    message.push_str(&format!("Went high at: {:?}\n", ctx.went_high_at));
-    message
+    compose_common(ctx, &strings.alert_header, &strings.alert_body)
 }
 
 pub fn compose_reminder_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
 ) -> String {
-    let mut message = String::new();
-
-    message.push_str(&strings.reminder_header);
-    message.push('\n');
-    message.push_str(&strings.reminder_body);
-    replace_placeholders(&mut message, ctx);
-
-    message
+    compose_common(ctx, &strings.reminder_header, &strings.reminder_body)
 }
 
 pub fn compose_startup_failed_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
 ) -> String {
-    let mut message = String::new();
-
-    message.push_str("PellX Monitor Startup Failed\n\n");
-    message.push_str(&format!(
-        "Time of startup from low: {:?}\n",
-        ctx.time_of_startup_from_low
-    ));
-    message
+    compose_common(
+        ctx,
+        &strings.startup_failed_header,
+        &strings.startup_failed_body,
+    )
 }
 
-fn replace_placeholders(message: &mut String, ctx: &context::Context) -> String {
-    let mut out = message.clone();
+fn compose_common(ctx: &context::Context, header: &str, body: &str) -> String {
+    let mut message = String::new();
+
+    if header.is_empty() {
+        return message;
+    }
+
+    message.push_str(header);
+    message.push('\n');
+    message.push_str(body);
+    replace_placeholders(&message, ctx)
+}
+
+fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
+    let mut out = message.to_string();
 
     if let Some(ref went_high_at) = ctx.went_high_at {
         out = out.replace("{went_high_at}", &fuzzy_datestamp_of(&went_high_at.wall));
@@ -52,7 +51,10 @@ fn replace_placeholders(message: &mut String, ctx: &context::Context) -> String 
     }
 
     if let Some(ref time_of_state_change) = ctx.time_of_state_change {
-        out = out.replace("{time_of_state_change}", &fuzzy_datestamp_of(&time_of_state_change.wall));
+        out = out.replace(
+            "{time_of_state_change}",
+            &fuzzy_datestamp_of(&time_of_state_change.wall),
+        );
     }
 
     if let Some(ref time_of_startup_from_low) = ctx.time_of_startup_from_low {
