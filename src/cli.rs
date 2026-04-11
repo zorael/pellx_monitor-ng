@@ -4,7 +4,13 @@ use crate::source;
 
 #[derive(Parser)]
 pub struct Cli {
-    #[arg(long = "source", value_enum, ignore_case = true)]
+    #[arg(
+        long = "source",
+        value_enum,
+        value_name = "some source",
+        ignore_case = true,
+        default_value = "dummy"
+    )]
     pub source: Option<source::ChoiceOfInputSource>,
 
     #[arg(short = 'v', long)]

@@ -7,7 +7,7 @@ pub trait InputSource {
     fn read(&mut self) -> Reading;
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
 pub enum ChoiceOfInputSource {
     #[allow(unused)]
     #[default]

@@ -10,6 +10,9 @@ pub struct Config {
     pub monitor: MonitorConfig,
     pub gpio: GpioConfig,
     pub println: PrintlnConfig,
+    pub slack: SlackConfig,
+    pub batsign: BatsignConfig,
+    pub command: CommandConfig,
 }
 
 impl Config {
@@ -43,6 +46,7 @@ pub struct MonitorConfig {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GpioConfig {
+    pub strings: Option<MessageStrings>,
     pub enabled: Option<bool>,
     pub pin: Option<u8>,
 }
@@ -50,5 +54,45 @@ pub struct GpioConfig {
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PrintlnConfig {
+    pub strings: Option<MessageStrings>,
     pub enabled: Option<bool>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct SlackConfig {
+    pub strings: Option<MessageStrings>,
+    pub enabled: Option<bool>,
+    pub urls: Option<Vec<String>>,
+    pub show_response: Option<bool>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct BatsignConfig {
+    pub strings: Option<MessageStrings>,
+    pub enabled: Option<bool>,
+    pub urls: Option<Vec<String>>,
+    pub show_response: Option<bool>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct CommandConfig {
+    pub strings: Option<MessageStrings>,
+    pub enabled: Option<bool>,
+    pub commands: Option<Vec<String>>,
+    pub show_response: Option<bool>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct MessageStrings {
+    pub alert_header: Option<String>,
+    pub alert_body: Option<String>,
+    pub reminder_header: Option<String>,
+    pub reminder_body: Option<String>,
+    pub startup_failed_header: Option<String>,
+    pub startup_failed_body: Option<String>,
+    pub footer: Option<String>,
 }

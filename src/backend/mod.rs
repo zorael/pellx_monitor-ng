@@ -1,4 +1,7 @@
+mod batsign;
+mod command;
 mod println;
+mod slack;
 
 pub use println::PrintlnBackend;
 

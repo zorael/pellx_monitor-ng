@@ -1,21 +1,27 @@
 use crate::compose;
 use crate::context;
 
-pub struct PrintlnBackend {
+use std::process;
+
+pub struct CommandBackend {
     pub id: usize,
     pub name: String,
+    pub command: String,
+    pub show_response: bool,
 }
 
-impl PrintlnBackend {
-    pub fn new(id: usize, name: &str) -> Self {
+impl CommandBackend {
+    pub fn new(id: usize, name: &str, command: &str, show_response: bool) -> Self {
         Self {
             id,
             name: name.to_string(),
+            command: command.to_string(),
+            show_response,
         }
     }
 }
 
-impl super::Backend for PrintlnBackend {
+impl super::Backend for CommandBackend {
     fn id(&self) -> usize {
         self.id
     }
@@ -37,7 +43,16 @@ impl super::Backend for PrintlnBackend {
     }
 
     fn emit(&self, message: &str) -> Result<Option<String>, String> {
-        println!("{message}");
-        Ok(None)
+        let command = process::Command::new(&self.command)
+            .arg(message)
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if self.show_response {
+            let output = String::from_utf8_lossy(&command.stdout).trim().to_string();
+            Ok(Some(output))
+        } else {
+            Ok(None)
+        }
     }
 }

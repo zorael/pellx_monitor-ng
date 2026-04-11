@@ -1,4 +1,10 @@
+mod backends;
+mod strings;
+
 use std::time;
+
+pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSettings};
+pub use strings::MessageStrings;
 
 use crate::cli;
 use crate::config;
@@ -10,6 +16,9 @@ pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
     pub println: PrintlnSettings,
+    pub slack: SlackSettings,
+    pub batsign: BatsignSettings,
+    pub command: CommandSettings,
 
     pub verbose: bool,
     pub debug: bool,
@@ -21,6 +30,9 @@ impl Settings {
         self.monitor.apply_config(&config.monitor);
         self.gpio.apply_config(&config.gpio);
         self.println.apply_config(&config.println);
+        self.slack.apply_config(&config.slack);
+        self.batsign.apply_config(&config.batsign);
+        self.command.apply_config(&config.command);
     }
 
     pub fn apply_cli(&mut self, cli: &cli::Cli) {
@@ -29,7 +41,7 @@ impl Settings {
         self.dry_run = cli.dry_run;
 
         if let Some(source) = &cli.source {
-            self.monitor.source = source.clone();
+            self.monitor.source = *source;
         }
     }
 }
@@ -77,15 +89,20 @@ impl MonitorSettings {
 
 #[derive(Debug)]
 pub struct GpioSettings {
-    //pub enabled: bool,
+    pub strings: strings::MessageStrings,
+    pub enabled: bool,
     pub pin: u8,
 }
 
 impl GpioSettings {
     pub fn apply_config(&mut self, config: &config::GpioConfig) {
-        /*if let Some(enabled) = config.enabled {
+        if let Some(strings) = &config.strings {
+            self.strings.apply_config(strings);
+        }
+
+        if let Some(enabled) = config.enabled {
             self.enabled = enabled;
-        }*/
+        }
 
         if let Some(pin) = config.pin {
             self.pin = pin;
@@ -96,27 +113,9 @@ impl GpioSettings {
 impl Default for GpioSettings {
     fn default() -> Self {
         Self {
-            //enabled: true,
+            strings: strings::MessageStrings::default(),
+            enabled: true,
             pin: defaults::gpio::PIN,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct PrintlnSettings {
-    pub enabled: bool,
-}
-
-impl Default for PrintlnSettings {
-    fn default() -> Self {
-        Self { enabled: true }
-    }
-}
-
-impl PrintlnSettings {
-    pub fn apply_config(&mut self, config: &config::PrintlnConfig) {
-        if let Some(enabled) = config.enabled {
-            self.enabled = enabled;
         }
     }
 }
