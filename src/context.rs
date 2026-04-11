@@ -4,7 +4,6 @@ use crate::source;
 
 #[derive(Debug, Clone)]
 pub struct Context {
-    pub message_type: Option<MessageType>,
     pub loop_iteration: u64,
     pub went_low_at: Option<Timestamp>,
     pub went_high_at: Option<Timestamp>,
@@ -18,7 +17,6 @@ pub struct Context {
 impl Context {
     pub fn new() -> Self {
         Self {
-            message_type: None,
             loop_iteration: 0,
             went_low_at: None,
             went_high_at: None,
@@ -45,10 +43,25 @@ impl Timestamp {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-enum MessageType {
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum MessageType {
     Alert,
     Reminder,
     StartupFailed,
     StartupSuccess,
+}
+
+#[derive(Clone)]
+pub struct FailedSendAttempt {
+    pub message_type: MessageType,
+    pub ctx: Context,
+}
+
+impl FailedSendAttempt {
+    pub fn new(message_type: &MessageType, ctx: &Context) -> Self {
+        Self {
+            message_type: *message_type,
+            ctx: ctx.clone(),
+        }
+    }
 }

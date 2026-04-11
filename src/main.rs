@@ -229,7 +229,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     >= settings.monitor.max_allowed_startup_time
                 {
                     // Startup succeeded, can notify success
-                    send_startup_success_to_all(&mut notifiers, &ctx);
+                    send_to_all(&mut notifiers, &ctx, context::MessageType::StartupSuccess);
                     ctx.startup_succeeded = true;
                 }
 
@@ -244,16 +244,16 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_startup_failed_to_all(&mut notifiers, &ctx);
+                        send_to_all(&mut notifiers, &ctx, context::MessageType::StartupFailed);
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_alert_to_all(&mut notifiers, &ctx);
+                    send_to_all(&mut notifiers, &ctx, context::MessageType::Alert);
                 } else {
                     // We have been HIGH for a while, this is a reminder
-                    send_reminder_to_all(&mut notifiers, &ctx);
+                    send_to_all(&mut notifiers, &ctx, context::MessageType::Reminder);
                 }
 
                 end_loop(&mut ctx, settings.monitor.loop_interval);
@@ -292,9 +292,83 @@ fn at_least_one_notifier_is_due_for_retry(
     false
 }
 
-fn send_startup_success_to_all(
+fn send_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
+    message_type: context::MessageType,
+) -> notify::NotificationResult {
+    let mut result = notify::NotificationResult {
+        total: notifiers.len(),
+        ..Default::default()
+    };
+
+    for n in notifiers {
+        match send_to_one(n, ctx, message_type) {
+            notify::SendResult::Success => result.success += 1,
+            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::TryAgainLater => result.try_again_later += 1,
+        }
+    }
+
+    result
+}
+
+fn send_to_one(
+    n: &mut Box<dyn notify::StatefulNotifier>,
+    ctx: &context::Context,
+    message_type: context::MessageType,
+) -> notify::SendResult {
+    if message_type == context::MessageType::Reminder {
+        match n.state().time_of_next_reminder {
+            Some(t) if t > ctx.now.instant => {
+                // The time of next reminder is in the future; not yet due
+                return notify::SendResult::TryAgainLater;
+            }
+            Some(_) => {
+                // Due for reminder, drop down
+            }
+            None => {
+                // No reminder scheduled? This should not happen
+                eprintln!(
+                    "Logic error: send_reminder_to_one called on notifier {} \
+                    but it is missing a time_of_next_reminder",
+                    n.name()
+                );
+                return notify::SendResult::Failure;
+            }
+        }
+    }
+
+    let result = match message_type {
+        context::MessageType::Alert => n.send_alert(ctx),
+        context::MessageType::Reminder => n.send_reminder(ctx),
+        context::MessageType::StartupFailed => n.send_startup_failed(ctx),
+        context::MessageType::StartupSuccess => n.send_startup_success(ctx),
+    };
+
+    match result {
+        notify::SendResult::Success => {
+            if message_type == context::MessageType::Reminder {
+                n.state_mut().on_reminder_success();
+            } else {
+                n.state_mut().reset();
+            }
+            n.state_mut().bump_time_of_next_reminder();
+            notify::SendResult::Success
+        }
+        notify::SendResult::Failure => {
+            n.state_mut().on_failure(ctx, &message_type);
+            n.state_mut().bump_time_of_next_retry();
+            notify::SendResult::Failure
+        }
+        notify::SendResult::TryAgainLater => notify::SendResult::TryAgainLater,
+    }
+}
+
+#[cfg(false)]
+fn send_startup_success_to_all(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &mut context::Context,
 ) -> notify::NotificationResult {
     let mut result = notify::NotificationResult {
         total: notifiers.len(),
@@ -312,6 +386,7 @@ fn send_startup_success_to_all(
     result
 }
 
+#[cfg(false)]
 fn send_startup_success_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
@@ -333,6 +408,7 @@ fn send_startup_success_to_one(
     result
 }
 
+#[cfg(false)]
 fn send_startup_failed_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
@@ -353,6 +429,7 @@ fn send_startup_failed_to_all(
     result
 }
 
+#[cfg(false)]
 fn send_startup_failed_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
@@ -374,6 +451,7 @@ fn send_startup_failed_to_one(
     result
 }
 
+#[cfg(false)]
 fn send_alert_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
@@ -394,6 +472,7 @@ fn send_alert_to_all(
     result
 }
 
+#[cfg(false)]
 fn send_alert_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
@@ -415,6 +494,7 @@ fn send_alert_to_one(
     result
 }
 
+#[cfg(false)]
 fn send_reminder_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
@@ -435,6 +515,7 @@ fn send_reminder_to_all(
     result
 }
 
+#[cfg(false)]
 fn send_reminder_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
@@ -481,8 +562,13 @@ fn send_retries(
     settings: &settings::Settings,
 ) {
     for n in notifiers {
-        match n.state().time_of_next_retry {
-            Some(t) if t >= *now => {
+        let Some(previous_failed_send) = n.state().previous_failed_send.clone() else {
+            // No previous failed send, this notifier just hasn't had a failed send
+            continue;
+        };
+
+        match &n.state().time_of_next_retry {
+            Some(t) if t > now => {
                 // The time is in the future, not yet due for retry
                 continue;
             }
@@ -495,44 +581,51 @@ fn send_retries(
             }
         }
 
-        let Some(previous_failed_ctx) = &n.state().previous_failed_context.clone() else {
-            eprintln!(
-                "Error: retry calculated due but {} is missing a failed context",
-                n.name()
-            );
-            continue;
-        };
+        match previous_failed_send.message_type {
+            context::MessageType::StartupSuccess => {
+                let _ = send_to_one(
+                    n,
+                    &previous_failed_send.ctx,
+                    context::MessageType::StartupSuccess,
+                );
+            }
+            context::MessageType::StartupFailed => {
+                let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
+                    // Should never happen
+                    eprintln!(
+                        "Logic error: previous_failed_send has message_type StartupFailed but is missing time_of_startup_from_low"
+                    );
+                    continue;
+                };
 
-        match previous_failed_ctx.time_of_startup_from_low {
-            Some(t) if t.instant.elapsed() < settings.monitor.max_allowed_startup_time => {
-                // This was a startup failure
-                let _ = send_startup_failed_to_one(n, previous_failed_ctx);
-                continue;
+                if t.instant.elapsed() < settings.monitor.max_allowed_startup_time {
+                    let _ = send_to_one(
+                        n,
+                        &previous_failed_send.ctx,
+                        context::MessageType::StartupFailed,
+                    );
+                }
             }
-            Some(_) => {
-                // This may be a startup failure, we don't know.
-                // See f it is a reminder or an alert below.
+            context::MessageType::Reminder => {
+                let Some(t) = &n.state().time_of_next_reminder else {
+                    // Should never happen
+                    eprintln!(
+                        "Logic error: previous_failed_send has message_type Reminder but is missing time_of_next_reminder"
+                    );
+                    continue;
+                };
+
+                if t > now {
+                    // Not yet due for reminder retry, skip
+                    continue;
+                }
+
+                let _ = send_to_one(n, &previous_failed_send.ctx, context::MessageType::Reminder);
             }
-            None => {
-                // This is a very rare first-iteration HIGH failure
+            context::MessageType::Alert => {
+                let _ = send_to_one(n, &previous_failed_send.ctx, context::MessageType::Alert);
             }
         }
-
-        match n.state().time_of_next_reminder {
-            Some(t) if t < *now => {
-                // This was a reminder failure
-                let _ = send_reminder_to_one(n, previous_failed_ctx);
-                continue;
-            }
-            Some(_) => {
-                // This was a reminder failure but we should not yet send a new one
-                continue;
-            }
-            None => {}
-        }
-
-        // This was an alert failure
-        let _ = send_alert_to_one(n, previous_failed_ctx);
     }
 }
 
@@ -557,11 +650,4 @@ fn save_settings(settings: settings::Settings) -> process::ExitCode {
             process::ExitCode::FAILURE
         }
     }
-}
-
-enum MessageType {
-    Alert,
-    Reminder,
-    StartupFailed,
-    StartupSuccess,
 }

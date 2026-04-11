@@ -103,8 +103,9 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 }
 
+#[derive(Clone)]
 pub struct NotifierState {
-    pub previous_failed_context: Option<context::Context>,
+    pub previous_failed_send: Option<context::FailedSendAttempt>,
     pub time_of_next_reminder: Option<time::Instant>,
     pub time_of_next_retry: Option<time::Instant>,
     pub reminder_count: u32,
@@ -114,7 +115,7 @@ pub struct NotifierState {
 impl NotifierState {
     pub fn new() -> Self {
         Self {
-            previous_failed_context: None,
+            previous_failed_send: None,
             time_of_next_reminder: None,
             time_of_next_retry: None,
             reminder_count: 0,
@@ -123,7 +124,7 @@ impl NotifierState {
     }
 
     pub fn reset(&mut self) {
-        self.previous_failed_context = None;
+        //self.previous_failed_context = None;
         self.time_of_next_reminder = None;
         self.time_of_next_retry = None;
         self.reminder_count = 0;
@@ -131,13 +132,14 @@ impl NotifierState {
     }
 
     pub fn on_reminder_success(&mut self) {
-        self.previous_failed_context = None;
+        //self.previous_failed_context = None;
         self.time_of_next_retry = None;
         self.reminder_count += 1;
     }
 
-    pub fn on_failure(&mut self, ctx: &context::Context) {
-        self.previous_failed_context = Some(ctx.clone());
+    pub fn on_failure(&mut self, ctx: &context::Context, message_type: &context::MessageType) {
+        let failed_send = context::FailedSendAttempt::new(message_type, ctx);
+        self.previous_failed_send = Some(failed_send);
     }
 
     pub fn bump_time_of_next_reminder(&mut self) {
