@@ -1,5 +1,6 @@
 use crate::compose;
 use crate::context;
+use crate::settings;
 
 pub struct BatsignBackend {
     pub id: usize,
@@ -7,10 +8,17 @@ pub struct BatsignBackend {
     pub agent: ureq::Agent,
     pub url: String,
     pub show_response: bool,
+    pub strings: settings::MessageStrings,
 }
 
 impl BatsignBackend {
-    pub fn new(id: usize, agent: ureq::Agent, url: &str, show_response: bool) -> Self {
+    pub fn new(
+        id: usize,
+        agent: ureq::Agent,
+        url: &str,
+        show_response: bool,
+        strings: settings::MessageStrings,
+    ) -> Self {
         let name = format!("batsign-{}", id);
 
         Self {
@@ -19,6 +27,7 @@ impl BatsignBackend {
             agent,
             url: url.to_string(),
             show_response,
+            strings,
         }
     }
 }
@@ -33,15 +42,15 @@ impl super::Backend for BatsignBackend {
     }
 
     fn compose_alert(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx)
+        compose::compose_alert_message(ctx, &self.strings)
     }
 
     fn compose_reminder(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx)
+        compose::compose_reminder_message(ctx, &self.strings)
     }
 
     fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx)
+        compose::compose_startup_failed_message(ctx, &self.strings)
     }
 
     fn emit(&self, message: &str) -> Result<Option<String>, String> {

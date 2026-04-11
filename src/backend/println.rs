@@ -1,16 +1,18 @@
 use crate::compose;
 use crate::context;
+use crate::settings;
 
 pub struct PrintlnBackend {
     pub id: usize,
     pub name: String,
+    pub strings: settings::MessageStrings,
 }
 
 impl PrintlnBackend {
-    pub fn new(id: usize) -> Self {
+    pub fn new(id: usize, strings: settings::MessageStrings) -> Self {
         let name = format!("println-{}", id);
 
-        Self { id, name }
+        Self { id, name, strings }
     }
 }
 
@@ -24,15 +26,15 @@ impl super::Backend for PrintlnBackend {
     }
 
     fn compose_alert(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx)
+        compose::compose_alert_message(ctx, &self.strings)
     }
 
     fn compose_reminder(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx)
+        compose::compose_reminder_message(ctx, &self.strings)
     }
 
     fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx)
+        compose::compose_startup_failed_message(ctx, &self.strings)
     }
 
     fn emit(&self, message: &str) -> Result<Option<String>, String> {

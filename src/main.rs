@@ -103,8 +103,13 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
 
     if settings.slack.enabled {
         for (i, url) in settings.slack.urls.iter().enumerate() {
-            let backend =
-                backend::SlackBackend::new(i, agent.clone(), url, settings.slack.show_response);
+            let backend = backend::SlackBackend::new(
+                i,
+                agent.clone(),
+                url,
+                settings.slack.show_response,
+                settings.slack.strings.clone(),
+            );
 
             let n = notify::Notifier::new(backend, settings.dry_run);
             notifiers.push(Box::new(n));
@@ -113,8 +118,13 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
 
     if settings.batsign.enabled {
         for (i, url) in settings.batsign.urls.iter().enumerate() {
-            let backend =
-                backend::BatsignBackend::new(i, agent.clone(), url, settings.batsign.show_response);
+            let backend = backend::BatsignBackend::new(
+                i,
+                agent.clone(),
+                url,
+                settings.batsign.show_response,
+                settings.batsign.strings.clone(),
+            );
 
             let n = notify::Notifier::new(backend, settings.dry_run);
             notifiers.push(Box::new(n));
@@ -123,14 +133,19 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
 
     if settings.command.enabled {
         for (i, command) in settings.command.commands.iter().enumerate() {
-            let backend = backend::CommandBackend::new(i, command, settings.command.show_response);
+            let backend = backend::CommandBackend::new(
+                i,
+                command,
+                settings.command.show_response,
+                settings.command.strings.clone(),
+            );
             let n = notify::Notifier::new(backend, settings.dry_run);
             notifiers.push(Box::new(n));
         }
     }
 
     if settings.println.enabled {
-        let backend = backend::PrintlnBackend::new(0);
+        let backend = backend::PrintlnBackend::new(0, settings.println.strings.clone());
         let n = notify::Notifier::new(backend, settings.dry_run);
 
         notifiers.push(Box::new(n));
@@ -142,7 +157,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         ctx.now = time::Instant::now();
 
         if at_least_one_notifier_is_due_for_retry(&mut notifiers, &ctx.now) {
-            send_retries(&mut notifiers, &ctx.now);
+            send_retries(&mut notifiers, &ctx.now, &settings);
         }
 
         let reading = source.read();
@@ -158,18 +173,18 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
             // Reset
             match reading {
                 source::Reading::Low => {
-                    ctx.went_low_at = Some(ctx.now);
+                    ctx.went_low_at = Some(context::Timestamp::now());
                     ctx.time_of_startup_from_low = None;
                     ctx.startup_succeeded = false;
                 }
                 source::Reading::High => {
-                    ctx.went_high_at = Some(ctx.now);
+                    ctx.went_high_at = Some(context::Timestamp::now());
                 }
             }
 
             // Update
             ctx.previous_reading = reading;
-            let _ = ctx.time_of_state_change.insert(ctx.now);
+            let _ = ctx.time_of_state_change = Some(context::Timestamp::now());
         }
 
         if ctx.time_of_state_change.is_none() && reading == source::Reading::Low {
@@ -193,13 +208,13 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         // First loop after going low, can't have started up yet
                         // (provided startup_duration > 0)
                         println!("-- NEW LOW --");
-                        ctx.time_of_startup_from_low = Some(ctx.now);
+                        ctx.time_of_startup_from_low = Some(context::Timestamp::now());
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
                 };
 
-                if time_of_startup_from_low.elapsed() >= settings.monitor.max_allowed_startup_time {
+                if time_of_startup_from_low.instant.elapsed() >= settings.monitor.max_allowed_startup_time {
                     // Startup succeeded, can notify success
                     println!("--> notify LOW");
                     ctx.startup_succeeded = true;
@@ -213,7 +228,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     println!("-- NEW HIGH --");
 
                     if let Some(t) = ctx.time_of_startup_from_low
-                        && t.elapsed() < settings.monitor.max_allowed_startup_time
+                        && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
                         send_startup_failed_to_all(&mut notifiers, &ctx);
@@ -404,7 +419,7 @@ fn send_reminder_to_one(
     result
 }
 
-fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &time::Instant) {
+fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &time::Instant, settings: &settings::Settings) {
     for n in notifiers {
         match n.state().time_of_next_retry {
             Some(t) if t >= *now => {
@@ -429,7 +444,7 @@ fn send_retries(notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>, now: &ti
         };
 
         match previous_failed_ctx.time_of_startup_from_low {
-            Some(t) if t.elapsed() < time::Duration::from_secs(10) => {
+            Some(t) if t.instant.elapsed() < settings.monitor.max_allowed_startup_time => {
                 // This was a startup failure
                 let _ = send_startup_failed_to_one(n, previous_failed_ctx);
                 continue;
