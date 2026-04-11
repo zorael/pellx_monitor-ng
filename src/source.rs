@@ -44,8 +44,8 @@ impl InputSource for GpioInputSource {
     }
 
     fn read(&mut self) -> Reading {
-        match self.pin {
-            Some(ref pin) => match pin.read() {
+        match &self.pin {
+            Some(pin) => match pin.read() {
                 gpio::Level::Low => Reading::Low,
                 gpio::Level::High => Reading::High,
             },

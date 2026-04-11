@@ -42,22 +42,22 @@ fn compose_common(ctx: &context::Context, header: &str, body: &str) -> String {
 fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
     let mut out = message.to_string();
 
-    if let Some(ref went_high_at) = ctx.went_high_at {
+    if let Some(went_high_at) = &ctx.went_high_at {
         out = out.replace("{went_high_at}", &fuzzy_datestamp_of(&went_high_at.wall));
     }
 
-    if let Some(ref went_low_at) = ctx.went_low_at {
+    if let Some(went_low_at) = &ctx.went_low_at {
         out = out.replace("{went_low_at}", &fuzzy_datestamp_of(&went_low_at.wall));
     }
 
-    if let Some(ref time_of_state_change) = ctx.time_of_state_change {
+    if let Some(time_of_state_change) = &ctx.time_of_state_change {
         out = out.replace(
             "{time_of_state_change}",
             &fuzzy_datestamp_of(&time_of_state_change.wall),
         );
     }
 
-    if let Some(ref time_of_startup_from_low) = ctx.time_of_startup_from_low {
+    if let Some(time_of_startup_from_low) = &ctx.time_of_startup_from_low {
         out = out.replace(
             "{time_of_startup_from_low}",
             &fuzzy_datestamp_of(&time_of_startup_from_low.wall),
