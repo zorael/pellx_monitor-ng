@@ -15,8 +15,8 @@ pub struct Config {
     pub println: PrintlnConfig,
 }
 
-impl From<settings::Settings> for Config {
-    fn from(settings: settings::Settings) -> Self {
+impl From<&settings::Settings> for Config {
+    fn from(settings: &settings::Settings) -> Self {
         Self {
             monitor: MonitorConfig {
                 source: settings.monitor.source,
@@ -29,25 +29,25 @@ impl From<settings::Settings> for Config {
                 pin: Some(settings.gpio.pin),
             },
             slack: SlackConfig {
-                strings: Some(settings.slack.strings.into()),
+                strings: Some(settings.slack.strings.clone().into()),
                 enabled: Some(settings.slack.enabled),
                 urls: Some(settings.slack.urls.clone()),
                 show_response: Some(settings.slack.show_response),
             },
             batsign: BatsignConfig {
-                strings: Some(settings.batsign.strings.into()),
+                strings: Some(settings.batsign.strings.clone().into()),
                 enabled: Some(settings.batsign.enabled),
                 urls: Some(settings.batsign.urls.clone()),
                 show_response: Some(settings.batsign.show_response),
             },
             command: CommandConfig {
-                strings: Some(settings.command.strings.into()),
+                strings: Some(settings.command.strings.clone().into()),
                 enabled: Some(settings.command.enabled),
                 commands: Some(settings.command.commands.clone()),
                 show_response: Some(settings.command.show_response),
             },
             println: PrintlnConfig {
-                strings: Some(settings.println.strings.into()),
+                strings: Some(settings.println.strings.clone().into()),
                 enabled: Some(settings.println.enabled),
             },
         }

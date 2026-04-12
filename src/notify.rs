@@ -51,7 +51,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(ctx, &message) {
+        match self
+            .backend
+            .emit(ctx, &message, &context::MessageType::Alert)
+        {
+            Ok(Some(output)) => {
+                println!("Output:\n{output}");
+                SendResult::Success
+            }
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -66,7 +73,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(ctx, &message) {
+        match self
+            .backend
+            .emit(ctx, &message, &context::MessageType::Reminder)
+        {
+            Ok(Some(output)) => {
+                println!("Output:\n{output}");
+                SendResult::Success
+            }
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -81,7 +95,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(ctx, &message) {
+        match self
+            .backend
+            .emit(ctx, &message, &context::MessageType::StartupFailed)
+        {
+            Ok(Some(output)) => {
+                println!("Output:\n{output}");
+                SendResult::Success
+            }
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -96,7 +117,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             return SendResult::Success;
         }
 
-        match self.backend.emit(ctx, &message) {
+        match self
+            .backend
+            .emit(ctx, &message, &context::MessageType::StartupSuccess)
+        {
+            Ok(Some(output)) => {
+                println!("Output:\n{output}");
+                SendResult::Success
+            }
             Ok(_) => SendResult::Success,
             Err(_) => SendResult::Failure,
         }
@@ -171,6 +199,10 @@ impl NotifierState {
         };
 
         self.time_of_next_retry = Some(time::Instant::now() + multiplier * SECOND);
+    }
+
+    pub fn has_due_reminder(&self, now: time::Instant) -> bool {
+        matches!(self.time_of_next_reminder, Some(time_of_next_reminder) if time_of_next_reminder <= now)
     }
 }
 

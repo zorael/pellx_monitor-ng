@@ -66,9 +66,7 @@ impl BatsignSettings {
             self.show_response = show_response;
         }
     }
-}
 
-impl BatsignSettings {
     pub fn sanity_check(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());

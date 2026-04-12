@@ -262,8 +262,14 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     // We just randomly went HIGH for no reason, this is an alert
                     send_to_all(&mut notifiers, &ctx, context::MessageType::Alert);
                 } else {
-                    // We have been HIGH for a while, this is a reminder
-                    send_to_all(&mut notifiers, &ctx, context::MessageType::Reminder);
+                    // We have been HIGH for a while, it may be time for a reminder
+                    let at_least_one_notifier_due_for_reminder = notifiers
+                        .iter()
+                        .any(|n| n.state().has_due_reminder(ctx.now.instant));
+
+                    if at_least_one_notifier_due_for_reminder {
+                        send_to_all(&mut notifiers, &ctx, context::MessageType::Reminder);
+                    }
                 }
 
                 end_loop(&mut ctx, settings.monitor.loop_interval);
@@ -356,19 +362,27 @@ fn send_to_one(
         context::MessageType::StartupSuccess => n.send_startup_success(ctx),
     };
 
-    let oneshot_message_type = matches!(message_type, context::MessageType::StartupSuccess);
-
     match result {
         notify::SendResult::Success => {
-            if message_type == context::MessageType::Reminder {
-                n.state_mut().on_reminder_success();
-            } else {
-                n.state_mut().reset();
+            match &message_type {
+                context::MessageType::StartupSuccess => {
+                    // End of the line, no reminders wanted
+                    n.state_mut().reset();
+                }
+                context::MessageType::Reminder => {
+                    n.state_mut().on_reminder_success();
+                    n.state_mut().bump_time_of_next_reminder();
+                }
+                _ => {
+                    // This kind of message type should have reminders.
+                    // We need to set the reminder timestamp at *some* point.
+                    // Is this not the right place?
+                    n.state_mut().bump_time_of_next_reminder();
+                }
             }
 
-            if !oneshot_message_type {
-                n.state_mut().bump_time_of_next_reminder();
-            }
+            // Reset failure state
+            n.state_mut().retry_count = 0;
             notify::SendResult::Success
         }
         notify::SendResult::Failure => {
@@ -456,7 +470,7 @@ fn send_retries(
 fn save_settings(settings: settings::Settings) -> process::ExitCode {
     let config_file = settings.config_file.clone();
 
-    let config = config::Config::from(settings.clone());
+    let config = config::Config::from(&settings);
 
     match confy::store_path(config_file, config) {
         Ok(()) => {

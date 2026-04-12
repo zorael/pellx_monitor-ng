@@ -20,5 +20,10 @@ pub trait Backend {
     fn compose_startup_failed(&self, ctx: &context::Context) -> String;
     fn compose_startup_success(&self, ctx: &context::Context) -> String;
 
-    fn emit(&self, ctx: &context::Context, message: &str) -> Result<Option<String>, String>;
+    fn emit(
+        &self,
+        ctx: &context::Context,
+        message: &str,
+        message_type: &context::MessageType,
+    ) -> Result<Option<String>, String>;
 }
