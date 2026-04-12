@@ -25,20 +25,8 @@ impl super::Backend for PrintlnBackend {
         &self.name
     }
 
-    fn compose_alert(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx, &self.strings)
-    }
-
-    fn compose_reminder(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx, &self.strings)
-    }
-
-    fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx, &self.strings)
-    }
-
-    fn compose_startup_success(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_success_message(ctx, &self.strings)
+    fn strings(&self) -> &settings::MessageStrings {
+        &self.strings
     }
 
     fn emit(

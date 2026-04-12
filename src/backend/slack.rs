@@ -41,6 +41,10 @@ impl super::Backend for SlackBackend {
         &self.name
     }
 
+    fn strings(&self) -> &settings::MessageStrings {
+        &self.strings
+    }
+
     fn compose_alert(&self, ctx: &context::Context) -> String {
         let message = compose::compose_alert_message(ctx, &self.strings);
         serde_json::json!({ "text": message }).to_string()
