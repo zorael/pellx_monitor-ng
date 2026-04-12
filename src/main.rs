@@ -7,13 +7,14 @@ mod defaults;
 mod notify;
 mod settings;
 mod source;
+mod time;
 
 use clap::Parser;
 use std::error::Error;
 use std::path;
 use std::process;
 use std::thread;
-use std::time;
+use std::time as std_time;
 
 fn print_banner() {
     println!(
@@ -38,35 +39,15 @@ fn main() -> process::ExitCode {
         return process::ExitCode::SUCCESS;
     }
 
-    let config_path = match &cli.config {
-        Some(path) if path.exists() => path,
-        Some(path) => {
-            eprintln!("Specified config file {} does not exist", path.display());
+    let config = match resolve_config(cli.config.as_deref(), cli.save) {
+        Ok(config) => Some(config),
+        Err(err) if cli.save => {
+            eprintln!("Error resolving config file: {err}");
             return process::ExitCode::FAILURE;
         }
-        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
-    };
-
-    let config = match load_config_file(config_path) {
-        Ok(config) => config,
-        Err(_) if !config_path.exists() && !cli.save => {
-            eprintln!(
-                "No config file found (at {})",
-                defaults::program_metadata::CONFIG_FILENAME
-            );
-            return process::ExitCode::FAILURE;
-        }
-        Err(_) if !config_path.exists() => None,
         Err(err) => {
-            eprintln!("Failed to load configuration: {err}");
-            let mut src = err.source();
-
-            while let Some(e) = src {
-                eprintln!("  caused by: {e}");
-                src = e.source();
-            }
-
-            return process::ExitCode::FAILURE;
+            eprintln!("Warning: {}", err);
+            None
         }
     };
 
@@ -75,10 +56,28 @@ fn main() -> process::ExitCode {
     settings.apply_cli(&cli);
 
     if cli.save {
-        return save_settings(settings);
+        return settings.save();
     }
 
-    run_loop(settings)
+    let source = match init_source(&settings) {
+        Ok(source) => source,
+        Err(code) => return code,
+    };
+
+    let notifiers = build_notifiers(&settings);
+
+    match settings.sanity_check() {
+        Ok(()) => (),
+        Err(errors) => {
+            eprintln!("Configuration sanity check failed with the following errors:");
+            for error in errors {
+                eprintln!("  - {error}");
+            }
+            return process::ExitCode::FAILURE;
+        }
+    }
+
+    run_loop(notifiers, source, settings)
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
@@ -92,7 +91,9 @@ fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, 
     }
 }
 
-fn run_loop(settings: settings::Settings) -> process::ExitCode {
+fn init_source(
+    settings: &settings::Settings,
+) -> Result<Box<dyn source::InputSource>, process::ExitCode> {
     let mut source: Box<dyn source::InputSource> = match settings.monitor.source {
         source::ChoiceOfInputSource::Gpio => {
             Box::new(source::GpioInputSource::new(settings.gpio.pin))
@@ -101,13 +102,15 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
     };
 
     match source.init() {
-        Ok(()) => {}
+        Ok(()) => Ok(source),
         Err(err) => {
             eprintln!("Failed to initialize input source! {err}");
-            return process::ExitCode::FAILURE;
+            Err(process::ExitCode::FAILURE)
         }
     }
+}
 
+fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::StatefulNotifier>> {
     let mut notifiers: Vec<Box<dyn notify::StatefulNotifier>> = Vec::new();
     let agent = ureq::Agent::new_with_defaults();
 
@@ -161,23 +164,24 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
         notifiers.push(Box::new(n));
     }
 
-    match settings.sanity_check() {
-        Ok(()) => (),
-        Err(errors) => {
-            eprintln!("Configuration sanity check failed with the following errors:");
-            for error in errors {
-                eprintln!("  - {error}");
-            }
-            return process::ExitCode::FAILURE;
-        }
-    }
+    notifiers
+}
 
+fn run_loop(
+    mut notifiers: Vec<Box<dyn notify::StatefulNotifier>>,
+    mut source: Box<dyn source::InputSource>,
+    settings: settings::Settings,
+) -> process::ExitCode {
     let mut ctx = context::Context::new();
 
     loop {
-        ctx.now = context::Timestamp::now();
+        ctx.now = time::Timestamp::now();
 
-        if at_least_one_notifier_is_due_for_retry(&mut notifiers, &ctx.now.instant) {
+        let at_least_one_notifier_is_due_for_retry = notifiers
+            .iter()
+            .any(|n| n.state().has_due_retry(ctx.now.instant));
+
+        if at_least_one_notifier_is_due_for_retry {
             send_retries(&mut notifiers, &ctx.now.instant, &settings);
         }
 
@@ -194,18 +198,18 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
             // Reset
             match reading {
                 source::Reading::Low => {
-                    ctx.went_low_at = Some(context::Timestamp::now());
+                    ctx.went_low_at = Some(time::Timestamp::now());
                     ctx.time_of_startup_from_low = None;
                     ctx.startup_succeeded = false;
                 }
                 source::Reading::High => {
-                    ctx.went_high_at = Some(context::Timestamp::now());
+                    ctx.went_high_at = Some(time::Timestamp::now());
                 }
             }
 
             // Update
             ctx.previous_reading = reading;
-            ctx.time_of_state_change = Some(context::Timestamp::now());
+            ctx.time_of_state_change = Some(time::Timestamp::now());
         }
 
         if ctx.time_of_state_change.is_none() && reading == source::Reading::Low {
@@ -229,7 +233,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         // First loop after going low, can't have started up yet
                         // (provided startup_duration > 0)
                         println!("-- NEW LOW --");
-                        ctx.time_of_startup_from_low = Some(context::Timestamp::now());
+                        ctx.time_of_startup_from_low = Some(time::Timestamp::now());
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
@@ -239,7 +243,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                     >= settings.monitor.max_allowed_startup_time
                 {
                     // Startup succeeded, can notify success
-                    send_to_all(&mut notifiers, &ctx, context::MessageType::StartupSuccess);
+                    send_to_all(&mut notifiers, &ctx, notify::MessageType::StartupSuccess);
                     ctx.startup_succeeded = true;
                 }
 
@@ -254,13 +258,13 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_to_all(&mut notifiers, &ctx, context::MessageType::StartupFailed);
+                        send_to_all(&mut notifiers, &ctx, notify::MessageType::StartupFailed);
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_to_all(&mut notifiers, &ctx, context::MessageType::Alert);
+                    send_to_all(&mut notifiers, &ctx, notify::MessageType::Alert);
                 } else {
                     // We have been HIGH for a while, it may be time for a reminder
                     let at_least_one_notifier_due_for_reminder = notifiers
@@ -268,7 +272,7 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
                         .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
                     if at_least_one_notifier_due_for_reminder {
-                        send_to_all(&mut notifiers, &ctx, context::MessageType::Reminder);
+                        send_to_all(&mut notifiers, &ctx, notify::MessageType::Reminder);
                     }
                 }
 
@@ -279,39 +283,49 @@ fn run_loop(settings: settings::Settings) -> process::ExitCode {
     }
 }
 
-fn end_loop(ctx: &mut context::Context, interval: time::Duration) {
+fn end_loop(ctx: &mut context::Context, interval: std_time::Duration) {
     ctx.loop_iteration += 1;
     thread::sleep(interval);
 }
 
-fn at_least_one_notifier_is_due_for_retry(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    now: &time::Instant,
-) -> bool {
-    for n in notifiers {
-        match n.state().time_of_next_retry {
-            Some(t) if t >= *now => {
-                // The time is in the future, not yet due for retry
-                continue;
-            }
-            Some(_) => {
-                // Due for retry
-                return true;
-            }
-            None => {
-                // No retry scheduled
-                continue;
-            }
+fn resolve_config(config_path: Option<&path::Path>, save: bool) -> Result<config::Config, Box<dyn Error>> {
+    let config_path = match config_path {
+        Some(path) if path.exists() => path,
+        Some(path) => {
+            return Err(format!("Config file {} does not exist", path.display()).into());
         }
-    }
+        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+    };
 
-    false
+    let config = match load_config_file(config_path) {
+        Ok(config) => config,
+        Err(_) if !config_path.exists() && !save => {
+            return Err(format!("No config file found at {}", config_path.display()).into());
+        }
+        Err(_) if !config_path.exists() => None,
+        Err(err) => {
+            eprintln!("Failed to load configuration: {err}");
+            let mut src = err.source();
+
+            while let Some(e) = src {
+                eprintln!("  caused by: {e}");
+                src = e.source();
+            }
+
+            return Err(format!("Failed to load configuration: {err}").into());
+        }
+    };
+
+    match config {
+        Some(config) => Ok(config),
+        None => Err(format!("No config file found at {}", config_path.display()).into()),
+    }
 }
 
 fn send_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &context::Context,
-    message_type: context::MessageType,
+    message_type: notify::MessageType,
 ) -> notify::NotificationResult {
     let mut result = notify::NotificationResult {
         total: notifiers.len(),
@@ -340,9 +354,9 @@ fn send_to_all(
 fn send_to_one(
     n: &mut Box<dyn notify::StatefulNotifier>,
     ctx: &context::Context,
-    message_type: context::MessageType,
+    message_type: notify::MessageType,
 ) -> notify::SendResult {
-    if message_type == context::MessageType::Reminder {
+    if message_type == notify::MessageType::Reminder {
         match n.state().time_of_next_reminder {
             Some(t) if t > ctx.now.instant => {
                 // The time of next reminder is in the future; not yet due
@@ -366,20 +380,20 @@ fn send_to_one(
     }
 
     let result = match message_type {
-        context::MessageType::Alert => n.send_alert(ctx),
-        context::MessageType::Reminder => n.send_reminder(ctx),
-        context::MessageType::StartupFailed => n.send_startup_failed(ctx),
-        context::MessageType::StartupSuccess => n.send_startup_success(ctx),
+        notify::MessageType::Alert => n.send_alert(ctx),
+        notify::MessageType::Reminder => n.send_reminder(ctx),
+        notify::MessageType::StartupFailed => n.send_startup_failed(ctx),
+        notify::MessageType::StartupSuccess => n.send_startup_success(ctx),
     };
 
     match result {
         notify::SendResult::Success(output) => {
             match &message_type {
-                context::MessageType::StartupSuccess => {
+                notify::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
                     n.state_mut().reset();
                 }
-                context::MessageType::Reminder => {
+                notify::MessageType::Reminder => {
                     n.state_mut().on_reminder_success();
                     n.state_mut().bump_time_of_next_reminder();
                 }
@@ -406,7 +420,7 @@ fn send_to_one(
 
 fn send_retries(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    now: &time::Instant,
+    now: &std_time::Instant,
     settings: &settings::Settings,
 ) {
     for n in notifiers {
@@ -430,14 +444,14 @@ fn send_retries(
         }
 
         match previous_failed_send.message_type {
-            context::MessageType::StartupSuccess => {
+            notify::MessageType::StartupSuccess => {
                 let _ = send_to_one(
                     n,
                     &previous_failed_send.ctx,
-                    context::MessageType::StartupSuccess,
+                    notify::MessageType::StartupSuccess,
                 );
             }
-            context::MessageType::StartupFailed => {
+            notify::MessageType::StartupFailed => {
                 let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
                     // Should never happen
                     eprintln!(
@@ -450,11 +464,11 @@ fn send_retries(
                     let _ = send_to_one(
                         n,
                         &previous_failed_send.ctx,
-                        context::MessageType::StartupFailed,
+                        notify::MessageType::StartupFailed,
                     );
                 }
             }
-            context::MessageType::Reminder => {
+            notify::MessageType::Reminder => {
                 let Some(t) = &n.state().time_of_next_reminder else {
                     // Should never happen
                     eprintln!(
@@ -468,33 +482,11 @@ fn send_retries(
                     continue;
                 }
 
-                let _ = send_to_one(n, &previous_failed_send.ctx, context::MessageType::Reminder);
+                let _ = send_to_one(n, &previous_failed_send.ctx, notify::MessageType::Reminder);
             }
-            context::MessageType::Alert => {
-                let _ = send_to_one(n, &previous_failed_send.ctx, context::MessageType::Alert);
+            notify::MessageType::Alert => {
+                let _ = send_to_one(n, &previous_failed_send.ctx, notify::MessageType::Alert);
             }
-        }
-    }
-}
-
-fn save_settings(settings: settings::Settings) -> process::ExitCode {
-    let config_file = settings.config_file.clone();
-    let config = config::Config::from(&settings);
-
-    match confy::store_path(config_file, config) {
-        Ok(()) => {
-            println!(
-                "Config saved successfully to {}",
-                settings.config_file.display()
-            );
-            process::ExitCode::SUCCESS
-        }
-        Err(err) => {
-            eprintln!(
-                "Failed to save configuration to {}: {err}",
-                settings.config_file.display()
-            );
-            process::ExitCode::FAILURE
         }
     }
 }

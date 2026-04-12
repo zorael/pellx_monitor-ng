@@ -2,6 +2,7 @@ mod backends;
 mod strings;
 
 use std::path;
+use std::process;
 use std::time;
 
 pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSettings};
@@ -74,6 +75,27 @@ impl Settings {
             Ok(())
         } else {
             Err(errors)
+        }
+    }
+
+    pub fn save(&self) -> process::ExitCode {
+        let config = config::Config::from(self);
+
+        match confy::store_path(&self.config_file, config) {
+            Ok(()) => {
+                println!(
+                    "Config saved successfully to {}",
+                    self.config_file.display()
+                );
+                process::ExitCode::SUCCESS
+            }
+            Err(err) => {
+                eprintln!(
+                    "Failed to save configuration to {}: {err}",
+                    self.config_file.display()
+                );
+                process::ExitCode::FAILURE
+            }
         }
     }
 }

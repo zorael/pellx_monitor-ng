@@ -1,4 +1,5 @@
 use crate::context;
+use crate::notify;
 use crate::settings;
 
 pub struct PrintlnBackend {
@@ -32,7 +33,7 @@ impl super::Backend for PrintlnBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        message_type: &context::MessageType,
+        message_type: &notify::MessageType,
     ) -> Result<Option<String>, String> {
         println!("{message_type:?}");
         println!("{message}");

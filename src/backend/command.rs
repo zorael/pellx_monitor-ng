@@ -1,8 +1,10 @@
-use crate::context;
-use crate::settings;
-
 use std::path;
 use std::process;
+
+use crate::context;
+use crate::notify;
+use crate::settings;
+use crate::time;
 
 pub struct CommandBackend {
     pub id: usize,
@@ -48,7 +50,7 @@ impl super::Backend for CommandBackend {
         &self,
         ctx: &context::Context,
         message: &str,
-        message_type: &context::MessageType,
+        message_type: &notify::MessageType,
     ) -> Result<Option<String>, String> {
         let command = process::Command::new(&self.command)
             .arg(message)
@@ -87,7 +89,7 @@ impl super::Backend for CommandBackend {
     }
 }
 
-fn get_unix_timestamp(wall: &Option<context::Timestamp>) -> i64 {
+fn get_unix_timestamp(wall: &Option<time::Timestamp>) -> i64 {
     match wall {
         Some(t) => t.wall.timestamp(),
         None => 0,

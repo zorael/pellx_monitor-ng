@@ -1,0 +1,30 @@
+use std::time;
+
+#[derive(Debug, Copy, Clone)]
+pub struct Timestamp {
+    pub instant: time::Instant,
+    pub wall: chrono::DateTime<chrono::Local>,
+}
+
+impl Timestamp {
+    pub fn now() -> Self {
+        let instant = time::Instant::now();
+        let wall = chrono::Local::now();
+        Self { instant, wall }
+    }
+}
+
+pub fn fuzzy_datestamp_of(when: &chrono::DateTime<chrono::Local>) -> String {
+    const THREE_DAYS: chrono::Duration = chrono::Duration::days(3);
+    const TWELVE_HOURS: chrono::Duration = chrono::Duration::hours(12);
+
+    let ago = chrono::Local::now().signed_duration_since(when);
+
+    if ago > THREE_DAYS {
+        when.format("%Y-%m-%d").to_string()
+    } else if ago > TWELVE_HOURS {
+        when.format("%Y-%m-%d %H:%M:%S").to_string()
+    } else {
+        when.format("%H:%M:%S").to_string()
+    }
+}

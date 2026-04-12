@@ -1,4 +1,5 @@
 use crate::context;
+use crate::notify;
 use crate::settings;
 
 pub struct BatsignBackend {
@@ -48,7 +49,7 @@ impl super::Backend for BatsignBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        _message_type: &context::MessageType,
+        _message_type: &notify::MessageType,
     ) -> Result<Option<String>, String> {
         match self.agent.post(&self.url).send(message) {
             Ok(mut r) => match r.body_mut().read_to_string() {

@@ -53,10 +53,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         let message = self.backend.compose_alert(ctx);
 
-        match self
-            .backend
-            .emit(ctx, &message, &context::MessageType::Alert)
-        {
+        match self.backend.emit(ctx, &message, &MessageType::Alert) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -73,10 +70,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         let message = self.backend.compose_reminder(ctx);
 
-        match self
-            .backend
-            .emit(ctx, &message, &context::MessageType::Reminder)
-        {
+        match self.backend.emit(ctx, &message, &MessageType::Reminder) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -95,7 +89,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         match self
             .backend
-            .emit(ctx, &message, &context::MessageType::StartupFailed)
+            .emit(ctx, &message, &MessageType::StartupFailed)
         {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
@@ -115,7 +109,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         match self
             .backend
-            .emit(ctx, &message, &context::MessageType::StartupSuccess)
+            .emit(ctx, &message, &MessageType::StartupSuccess)
         {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
@@ -125,7 +119,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
 #[derive(Clone)]
 pub struct NotifierState {
-    pub previous_failed_send: Option<context::FailedSendAttempt>,
+    pub previous_failed_send: Option<FailedSendAttempt>,
     pub time_of_next_reminder: Option<time::Instant>,
     pub time_of_next_retry: Option<time::Instant>,
     pub reminder_count: u32,
@@ -156,8 +150,8 @@ impl NotifierState {
         self.retry_count = 0;
     }
 
-    pub fn on_failure(&mut self, ctx: &context::Context, message_type: &context::MessageType) {
-        let failed_send = context::FailedSendAttempt::new(message_type, ctx);
+    pub fn on_failure(&mut self, ctx: &context::Context, message_type: &MessageType) {
+        let failed_send = FailedSendAttempt::new(message_type, ctx);
         self.previous_failed_send = Some(failed_send);
     }
 
@@ -196,6 +190,10 @@ impl NotifierState {
     pub fn has_due_reminder(&self, now: time::Instant) -> bool {
         self.time_of_next_reminder.is_some_and(|t| t <= now)
     }
+
+    pub fn has_due_retry(&self, now: time::Instant) -> bool {
+        self.time_of_next_retry.is_some_and(|t| t <= now)
+    }
 }
 
 pub trait NotificationSender {
@@ -226,4 +224,27 @@ pub struct NotificationResult {
     pub success: usize,
     pub failure: usize,
     pub try_again_later: usize,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum MessageType {
+    Alert,
+    Reminder,
+    StartupFailed,
+    StartupSuccess,
+}
+
+#[derive(Clone)]
+pub struct FailedSendAttempt {
+    pub message_type: MessageType,
+    pub ctx: context::Context,
+}
+
+impl FailedSendAttempt {
+    pub fn new(message_type: &MessageType, ctx: &context::Context) -> Self {
+        Self {
+            message_type: *message_type,
+            ctx: ctx.clone(),
+        }
+    }
 }

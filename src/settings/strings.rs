@@ -17,16 +17,13 @@ impl Default for MessageStrings {
     fn default() -> Self {
         Self {
             alert_header: "PellX burner failure".to_string(),
-            alert_body: "It went into an error state at {fuzzy_datestamp_of_read}.".to_string(),
+            alert_body: "It went into an error state at {fuzzy_then}.".to_string(),
             reminder_header: "PellX burner still in failure".to_string(),
-            reminder_body: "It has been in an error state since {fuzzy_datestamp_of_read}."
-                .to_string(),
+            reminder_body: "It has been in an error state since {fuzzy_then}.".to_string(),
             startup_failed_header: "PellX burner startup failed".to_string(),
-            startup_failed_body: "It tried to start up but failed at {fuzzy_datestamp_of_read}."
-                .to_string(),
+            startup_failed_body: "It tried to start up but failed at {fuzzy_then}.".to_string(),
             startup_success_header: "PellX burner startup succeeded".to_string(),
-            startup_success_body: "It successfully started up at {fuzzy_datestamp_of_read}."
-                .to_string(),
+            startup_success_body: "It successfully started up at {fuzzy_then}.".to_string(),
             footer: "".to_string(),
         }
     }

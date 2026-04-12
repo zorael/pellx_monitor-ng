@@ -1,5 +1,6 @@
 use crate::compose;
 use crate::context;
+use crate::notify;
 use crate::settings;
 
 pub struct SlackBackend {
@@ -109,7 +110,7 @@ impl super::Backend for SlackBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        _message_type: &context::MessageType,
+        _message_type: &notify::MessageType,
     ) -> Result<Option<String>, String> {
         let json: serde_json::Value = serde_json::from_str(message).map_err(|e| e.to_string())?;
 

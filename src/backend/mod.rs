@@ -3,15 +3,15 @@ mod command;
 mod println;
 mod slack;
 
-use crate::compose;
-use crate::settings;
-
 pub use batsign::BatsignBackend;
 pub use command::CommandBackend;
 pub use println::PrintlnBackend;
 pub use slack::SlackBackend;
 
+use crate::compose;
 use crate::context;
+use crate::notify;
+use crate::settings;
 
 pub trait Backend {
     #[allow(unused)]
@@ -55,6 +55,6 @@ pub trait Backend {
         &self,
         ctx: &context::Context,
         message: &str,
-        message_type: &context::MessageType,
+        message_type: &notify::MessageType,
     ) -> Result<Option<String>, String>;
 }
