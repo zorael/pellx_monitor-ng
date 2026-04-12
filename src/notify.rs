@@ -48,8 +48,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
             println!("DRY RUN: send_alert");
             println!("Message:\n{message}");
-
-            return SendResult::Success;
+            return SendResult::Success(None);
         }
 
         let message = self.backend.compose_alert(ctx);
@@ -58,12 +57,8 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             .backend
             .emit(ctx, &message, &context::MessageType::Alert)
         {
-            Ok(Some(output)) => {
-                println!("Output:\n{output}");
-                SendResult::Success
-            }
-            Ok(_) => SendResult::Success,
-            Err(_) => SendResult::Failure,
+            Ok(output) => SendResult::Success(output),
+            Err(output) => SendResult::Failure(output),
         }
     }
 
@@ -73,8 +68,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
             println!("DRY RUN: send_reminder");
             println!("Message:\n{message}");
-
-            return SendResult::Success;
+            return SendResult::Success(None);
         }
 
         let message = self.backend.compose_reminder(ctx);
@@ -83,12 +77,8 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             .backend
             .emit(ctx, &message, &context::MessageType::Reminder)
         {
-            Ok(Some(output)) => {
-                println!("Output:\n{output}");
-                SendResult::Success
-            }
-            Ok(_) => SendResult::Success,
-            Err(_) => SendResult::Failure,
+            Ok(output) => SendResult::Success(output),
+            Err(output) => SendResult::Failure(output),
         }
     }
 
@@ -98,8 +88,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
             println!("DRY RUN: send_startup_failed");
             println!("Message:\n{message}");
-
-            return SendResult::Success;
+            return SendResult::Success(None);
         }
 
         let message = self.backend.compose_startup_failed(ctx);
@@ -108,12 +97,8 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             .backend
             .emit(ctx, &message, &context::MessageType::StartupFailed)
         {
-            Ok(Some(output)) => {
-                println!("Output:\n{output}");
-                SendResult::Success
-            }
-            Ok(_) => SendResult::Success,
-            Err(_) => SendResult::Failure,
+            Ok(output) => SendResult::Success(output),
+            Err(output) => SendResult::Failure(output),
         }
     }
 
@@ -123,8 +108,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
             println!("DRY RUN: send_startup_success");
             println!("Message:\n{message}");
-
-            return SendResult::Success;
+            return SendResult::Success(None);
         }
 
         let message = self.backend.compose_startup_success(ctx);
@@ -133,12 +117,8 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             .backend
             .emit(ctx, &message, &context::MessageType::StartupSuccess)
         {
-            Ok(Some(output)) => {
-                println!("Output:\n{output}");
-                SendResult::Success
-            }
-            Ok(_) => SendResult::Success,
-            Err(_) => SendResult::Failure,
+            Ok(output) => SendResult::Success(output),
+            Err(output) => SendResult::Failure(output),
         }
     }
 }
@@ -234,8 +214,8 @@ pub trait StateCarrier {
 }
 
 pub enum SendResult {
-    Success,
-    Failure,
+    Success(Option<String>),
+    Failure(String),
     TryAgainLater,
 }
 

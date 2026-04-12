@@ -320,8 +320,16 @@ fn send_to_all(
 
     for n in notifiers {
         match send_to_one(n, ctx, message_type) {
-            notify::SendResult::Success => result.success += 1,
-            notify::SendResult::Failure => result.failure += 1,
+            notify::SendResult::Success(output) => {
+                if let Some(output) = output {
+                    println!("Output from notifier {}:\n{output}", n.name());
+                }
+                result.success += 1;
+            }
+            notify::SendResult::Failure(output) => {
+                eprintln!("Error from notifier {}:\n{output}", n.name());
+                result.failure += 1;
+            }
             notify::SendResult::TryAgainLater => result.try_again_later += 1,
         }
     }
@@ -350,7 +358,9 @@ fn send_to_one(
                     but it is missing a time_of_next_reminder",
                     n.name()
                 );
-                return notify::SendResult::Failure;
+                return notify::SendResult::Failure(
+                    "Logic error: missing time_of_next_reminder".to_string(),
+                );
             }
         }
     }
@@ -363,7 +373,7 @@ fn send_to_one(
     };
 
     match result {
-        notify::SendResult::Success => {
+        notify::SendResult::Success(output) => {
             match &message_type {
                 context::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
@@ -383,12 +393,12 @@ fn send_to_one(
 
             // Reset failure state
             n.state_mut().retry_count = 0;
-            notify::SendResult::Success
+            notify::SendResult::Success(output)
         }
-        notify::SendResult::Failure => {
+        notify::SendResult::Failure(output) => {
             n.state_mut().on_failure(ctx, &message_type);
             n.state_mut().bump_time_of_next_retry();
-            notify::SendResult::Failure
+            notify::SendResult::Failure(output)
         }
         notify::SendResult::TryAgainLater => notify::SendResult::TryAgainLater,
     }
@@ -469,7 +479,6 @@ fn send_retries(
 
 fn save_settings(settings: settings::Settings) -> process::ExitCode {
     let config_file = settings.config_file.clone();
-
     let config = config::Config::from(&settings);
 
     match confy::store_path(config_file, config) {
