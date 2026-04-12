@@ -43,13 +43,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult {
-        let message = self.backend.compose_alert(ctx);
-
         if self.dry_run {
+            let message = self.backend.compose_alert_display(ctx);
+
             println!("DRY RUN: send_alert");
             println!("Message:\n{message}");
+
             return SendResult::Success;
         }
+
+        let message = self.backend.compose_alert(ctx);
 
         match self
             .backend
@@ -65,13 +68,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult {
-        let message = self.backend.compose_reminder(ctx);
-
         if self.dry_run {
+            let message = self.backend.compose_reminder_display(ctx);
+
             println!("DRY RUN: send_reminder");
             println!("Message:\n{message}");
+
             return SendResult::Success;
         }
+
+        let message = self.backend.compose_reminder(ctx);
 
         match self
             .backend
@@ -87,13 +93,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult {
-        let message = self.backend.compose_startup_failed(ctx);
-
         if self.dry_run {
+            let message = self.backend.compose_startup_failed_display(ctx);
+
             println!("DRY RUN: send_startup_failed");
             println!("Message:\n{message}");
+
             return SendResult::Success;
         }
+
+        let message = self.backend.compose_startup_failed(ctx);
 
         match self
             .backend
@@ -109,13 +118,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 
     fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult {
-        let message = self.backend.compose_startup_success(ctx);
-
         if self.dry_run {
+            let message = self.backend.compose_startup_success_display(ctx);
+
             println!("DRY RUN: send_startup_success");
             println!("Message:\n{message}");
+
             return SendResult::Success;
         }
+
+        let message = self.backend.compose_startup_success(ctx);
 
         match self
             .backend
@@ -202,7 +214,7 @@ impl NotifierState {
     }
 
     pub fn has_due_reminder(&self, now: time::Instant) -> bool {
-        matches!(self.time_of_next_reminder, Some(time_of_next_reminder) if time_of_next_reminder <= now)
+        self.time_of_next_reminder.is_some_and(|t| t <= now)
     }
 }
 

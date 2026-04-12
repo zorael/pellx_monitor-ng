@@ -23,7 +23,15 @@ pub trait Backend {
         compose::compose_alert_message(ctx, self.strings())
     }
 
+    fn compose_alert_display(&self, ctx: &context::Context) -> String {
+        compose::compose_alert_message(ctx, self.strings())
+    }
+
     fn compose_reminder(&self, ctx: &context::Context) -> String {
+        compose::compose_reminder_message(ctx, self.strings())
+    }
+
+    fn compose_reminder_display(&self, ctx: &context::Context) -> String {
         compose::compose_reminder_message(ctx, self.strings())
     }
 
@@ -31,7 +39,15 @@ pub trait Backend {
         compose::compose_startup_failed_message(ctx, self.strings())
     }
 
+    fn compose_startup_failed_display(&self, ctx: &context::Context) -> String {
+        compose::compose_startup_failed_message(ctx, self.strings())
+    }
+
     fn compose_startup_success(&self, ctx: &context::Context) -> String {
+        compose::compose_startup_success_message(ctx, self.strings())
+    }
+
+    fn compose_startup_success_display(&self, ctx: &context::Context) -> String {
         compose::compose_startup_success_message(ctx, self.strings())
     }
 
