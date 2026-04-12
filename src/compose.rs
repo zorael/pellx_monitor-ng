@@ -63,7 +63,7 @@ fn compose_common(ctx: &context::Context, header: &str, body: &str, footer: &str
         message.push_str(footer);
     }
 
-    replace_placeholders(&message, ctx)
+    replace_placeholders(&message, ctx).trim_end().to_string()
 }
 
 fn replace_placeholders(message: &str, ctx: &context::Context) -> String {

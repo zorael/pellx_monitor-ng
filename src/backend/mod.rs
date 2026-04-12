@@ -3,8 +3,8 @@ mod command;
 mod println;
 mod slack;
 
-use crate::settings;
 use crate::compose;
+use crate::settings;
 
 pub use batsign::BatsignBackend;
 pub use command::CommandBackend;
@@ -20,19 +20,19 @@ pub trait Backend {
     fn strings(&self) -> &settings::MessageStrings;
 
     fn compose_alert(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx, &self.strings())
+        compose::compose_alert_message(ctx, self.strings())
     }
 
     fn compose_reminder(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx, &self.strings())
+        compose::compose_reminder_message(ctx, self.strings())
     }
 
     fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx, &self.strings())
+        compose::compose_startup_failed_message(ctx, self.strings())
     }
 
     fn compose_startup_success(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_success_message(ctx, &self.strings())
+        compose::compose_startup_success_message(ctx, self.strings())
     }
 
     fn emit(

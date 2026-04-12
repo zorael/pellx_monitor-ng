@@ -1,4 +1,3 @@
-use crate::compose;
 use crate::context;
 use crate::settings;
 
