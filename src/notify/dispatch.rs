@@ -65,8 +65,8 @@ fn send_to_one(
         }
     }
 
-    let result = dispatch(n, ctx, &message_type);
-    apply_send_result(n, ctx, &message_type, &result)
+    let result = dispatch(n, ctx, message_type);
+    apply_send_result(n, ctx, message_type, result)
 }
 
 pub fn send_retries(
@@ -128,13 +128,13 @@ pub fn send_retries(
         let result = dispatch(
             n,
             &previous_failed_send.ctx,
-            &previous_failed_send.message_type,
+            previous_failed_send.message_type,
         );
         apply_send_result(
             n,
             &previous_failed_send.ctx,
-            &previous_failed_send.message_type,
-            &result,
+            previous_failed_send.message_type,
+            result,
         );
     }
 }
@@ -142,7 +142,7 @@ pub fn send_retries(
 fn dispatch(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
-    message_type: &super::MessageType,
+    message_type: super::MessageType,
 ) -> super::SendResult {
     match message_type {
         super::MessageType::Alert => n.send_alert(ctx),
@@ -155,8 +155,8 @@ fn dispatch(
 fn apply_send_result(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
-    message_type: &super::MessageType,
-    result: &super::SendResult,
+    message_type: super::MessageType,
+    result: super::SendResult,
 ) -> super::SendResult {
     match result {
         super::SendResult::Success(output) => {
@@ -179,12 +179,12 @@ fn apply_send_result(
 
             // Reset failure state
             n.state_mut().retry_count = 0;
-            super::SendResult::Success(output.clone())
+            super::SendResult::Success(output)
         }
         super::SendResult::Failure(output) => {
-            n.state_mut().on_failure(ctx, message_type);
+            n.state_mut().on_failure(ctx, &message_type);
             n.state_mut().bump_time_of_next_retry();
-            super::SendResult::Failure(output.clone())
+            super::SendResult::Failure(output)
         }
         super::SendResult::TryAgainLater => super::SendResult::TryAgainLater,
     }
