@@ -51,7 +51,9 @@ impl super::Backend for BatsignBackend {
         message: &str,
         _message_type: &notify::MessageType,
     ) -> Result<Option<String>, String> {
-        match self.agent.post(&self.url).send(message) {
+        let body = format!("Subject: {message}");
+
+        match self.agent.post(&self.url).send(&body) {
             Ok(mut r) => match r.body_mut().read_to_string() {
                 Ok(output) => {
                     if self.show_response {
