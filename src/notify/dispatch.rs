@@ -130,7 +130,8 @@ pub fn send_retries(
             &previous_failed_send.ctx,
             previous_failed_send.message_type,
         );
-        apply_send_result(
+
+        let _ = apply_send_result(
             n,
             &previous_failed_send.ctx,
             previous_failed_send.message_type,
