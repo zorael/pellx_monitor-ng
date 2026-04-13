@@ -71,8 +71,11 @@ impl super::Backend for CommandBackend {
             if !stdout.is_empty() {
                 output.push_str(&format!("STDOUT:\n{stdout}\n"));
             }
+
             if !stderr.is_empty() {
-                output.push_str("---\n");
+                if !output.is_empty() {
+                    output.push_str("---\n");
+                }
                 output.push_str(&format!("STDERR:\n{stderr}\n"));
             }
 
