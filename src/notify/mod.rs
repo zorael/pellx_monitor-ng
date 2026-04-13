@@ -1,3 +1,7 @@
+mod dispatch;
+
+pub use dispatch::{send_retries, send_to_all};
+
 use std::time;
 
 use crate::backend;
@@ -215,15 +219,6 @@ pub enum SendResult {
     Success(Option<String>),
     Failure(String),
     TryAgainLater,
-}
-
-#[derive(Default)]
-pub struct NotificationResult {
-    #[allow(unused)]
-    pub total: usize,
-    pub success: usize,
-    pub failure: usize,
-    pub try_again_later: usize,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq)]

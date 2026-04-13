@@ -56,6 +56,30 @@ fn main() -> process::ExitCode {
     settings.apply_config(config.as_ref());
     settings.apply_cli(&cli);
 
+    match settings.sanity_check() {
+        Ok(()) => (),
+        Err(errors) => {
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Configuration sanity check failed with the following errors:"
+            );
+
+            for error in errors {
+                logging::tseprintln!(settings.disable_timestamps, "  - {error}");
+            }
+
+            if settings.dry_run {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Continuing anyway because --dry-run is enabled."
+                );
+            } else if !cli.save {
+                // Allow errors if we're passing --save
+                return process::ExitCode::FAILURE;
+            }
+        }
+    }
+
     if cli.save {
         return settings.save();
     }
@@ -67,21 +91,46 @@ fn main() -> process::ExitCode {
 
     let notifiers = build_notifiers(&settings);
 
-    match settings.sanity_check() {
-        Ok(()) => (),
-        Err(errors) => {
-            logging::tseprintln!(
-                settings.disable_timestamps,
-                "Configuration sanity check failed with the following errors:"
-            );
-            for error in errors {
-                logging::tseprintln!(settings.disable_timestamps, "  - {error}");
-            }
-            return process::ExitCode::FAILURE;
-        }
-    }
-
     run_loop(notifiers, source, settings)
+}
+
+fn resolve_config(
+    config_path: Option<&path::Path>,
+    save: bool,
+) -> Result<config::Config, Box<dyn Error>> {
+    let config_path = match config_path {
+        Some(path) if path.exists() => path,
+        Some(path) => {
+            return Err(format!("Config file {} does not exist", path.display()).into());
+        }
+        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+    };
+
+    let config = match load_config_file(config_path) {
+        Ok(config) => config,
+        Err(_) if !config_path.exists() && !save => {
+            return Err(format!("No config file found at {}", config_path.display()).into());
+        }
+        Err(_) if !config_path.exists() => None,
+        Err(err) => {
+            let mut message = String::new();
+            message.push_str(&format!("Failed to load configuration: {err}"));
+
+            let mut src = err.source();
+
+            while let Some(e) = src {
+                message.push_str(&format!("\n  caused by: {e}"));
+                src = e.source();
+            }
+
+            return Err(message.into());
+        }
+    };
+
+    match config {
+        Some(config) => Ok(config),
+        None => Err(format!("No config file found at {}", config_path.display()).into()),
+    }
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
@@ -189,7 +238,7 @@ fn run_loop(
             .any(|n| n.state().has_due_retry(ctx.now.instant));
 
         if at_least_one_notifier_is_due_for_retry {
-            send_retries(&mut notifiers, &settings, &ctx.now.instant);
+            notify::send_retries(&mut notifiers, &settings, &ctx.now.instant);
         }
 
         let reading = source.read();
@@ -255,7 +304,7 @@ fn run_loop(
                     >= settings.monitor.max_allowed_startup_time
                 {
                     // Startup succeeded, can notify success
-                    send_to_all(
+                    notify::send_to_all(
                         &mut notifiers,
                         &settings,
                         &ctx,
@@ -277,7 +326,7 @@ fn run_loop(
                         && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_to_all(
+                        notify::send_to_all(
                             &mut notifiers,
                             &settings,
                             &ctx,
@@ -288,7 +337,12 @@ fn run_loop(
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_to_all(&mut notifiers, &settings, &ctx, notify::MessageType::Alert);
+                    notify::send_to_all(
+                        &mut notifiers,
+                        &settings,
+                        &ctx,
+                        notify::MessageType::Alert,
+                    );
                 } else {
                     // We have been HIGH for a while, it may be time for a reminder
                     let at_least_one_notifier_due_for_reminder = notifiers
@@ -296,7 +350,7 @@ fn run_loop(
                         .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
                     if at_least_one_notifier_due_for_reminder {
-                        send_to_all(
+                        notify::send_to_all(
                             &mut notifiers,
                             &settings,
                             &ctx,
@@ -315,210 +369,4 @@ fn run_loop(
 fn end_loop(ctx: &mut context::Context, interval: std_time::Duration) {
     ctx.loop_iteration += 1;
     thread::sleep(interval);
-}
-
-fn resolve_config(
-    config_path: Option<&path::Path>,
-    save: bool,
-) -> Result<config::Config, Box<dyn Error>> {
-    let config_path = match config_path {
-        Some(path) if path.exists() => path,
-        Some(path) => {
-            return Err(format!("Config file {} does not exist", path.display()).into());
-        }
-        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
-    };
-
-    let config = match load_config_file(config_path) {
-        Ok(config) => config,
-        Err(_) if !config_path.exists() && !save => {
-            return Err(format!("No config file found at {}", config_path.display()).into());
-        }
-        Err(_) if !config_path.exists() => None,
-        Err(err) => {
-            let mut message = String::new();
-            message.push_str(&format!("Failed to load configuration: {err}"));
-
-            let mut src = err.source();
-
-            while let Some(e) = src {
-                message.push_str(&format!("\n  caused by: {e}"));
-                src = e.source();
-            }
-
-            return Err(message.into());
-        }
-    };
-
-    match config {
-        Some(config) => Ok(config),
-        None => Err(format!("No config file found at {}", config_path.display()).into()),
-    }
-}
-
-fn send_to_all(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    settings: &settings::Settings,
-    ctx: &context::Context,
-    message_type: notify::MessageType,
-) -> notify::NotificationResult {
-    let mut result = notify::NotificationResult {
-        total: notifiers.len(),
-        ..Default::default()
-    };
-
-    for n in notifiers {
-        match send_to_one(n, ctx, message_type) {
-            notify::SendResult::Success(output) => {
-                if let Some(output) = output {
-                    logging::tsprintln!(
-                        settings.disable_timestamps,
-                        "Output from notifier {}:\n{output}",
-                        n.name()
-                    );
-                }
-                result.success += 1;
-            }
-            notify::SendResult::Failure(output) => {
-                logging::tseprintln!(
-                    settings.disable_timestamps,
-                    "Error from notifier {}:\n{output}",
-                    n.name()
-                );
-                result.failure += 1;
-            }
-            notify::SendResult::TryAgainLater => result.try_again_later += 1,
-        }
-    }
-
-    result
-}
-
-fn send_to_one(
-    n: &mut Box<dyn notify::StatefulNotifier>,
-    ctx: &context::Context,
-    message_type: notify::MessageType,
-) -> notify::SendResult {
-    if message_type == notify::MessageType::Reminder {
-        match n.state().time_of_next_reminder {
-            Some(t) if t > ctx.now.instant => {
-                // The time of next reminder is in the future; not yet due
-                return notify::SendResult::TryAgainLater;
-            }
-            Some(_) => {
-                // Due for reminder, drop down
-            }
-            None => {
-                // No reminder scheduled? This should not happen
-                return notify::SendResult::Failure(
-                    "Logic error: missing time_of_next_reminder".to_string(),
-                );
-            }
-        }
-    }
-
-    let result = match message_type {
-        notify::MessageType::Alert => n.send_alert(ctx),
-        notify::MessageType::Reminder => n.send_reminder(ctx),
-        notify::MessageType::StartupFailed => n.send_startup_failed(ctx),
-        notify::MessageType::StartupSuccess => n.send_startup_success(ctx),
-    };
-
-    match result {
-        notify::SendResult::Success(output) => {
-            match &message_type {
-                notify::MessageType::StartupSuccess => {
-                    // End of the line, no reminders wanted
-                    n.state_mut().reset();
-                }
-                notify::MessageType::Reminder => {
-                    n.state_mut().on_reminder_success();
-                    n.state_mut().bump_time_of_next_reminder();
-                }
-                _ => {
-                    // This kind of message type should have reminders.
-                    // We need to set the reminder timestamp at *some* point.
-                    // Is this not the right place?
-                    n.state_mut().bump_time_of_next_reminder();
-                }
-            }
-
-            // Reset failure state
-            n.state_mut().retry_count = 0;
-            notify::SendResult::Success(output)
-        }
-        notify::SendResult::Failure(output) => {
-            n.state_mut().on_failure(ctx, &message_type);
-            n.state_mut().bump_time_of_next_retry();
-            notify::SendResult::Failure(output)
-        }
-        notify::SendResult::TryAgainLater => notify::SendResult::TryAgainLater,
-    }
-}
-
-fn send_retries(
-    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    settings: &settings::Settings,
-    now: &std_time::Instant,
-) {
-    for n in notifiers {
-        let Some(previous_failed_send) = n.state().previous_failed_send.clone() else {
-            // No previous failed send, this notifier just hasn't had a failed send
-            continue;
-        };
-
-        match &n.state().time_of_next_retry {
-            Some(t) if t > now => {
-                // The time is in the future, not yet due for retry
-                continue;
-            }
-            Some(_) => {
-                // Due for retry
-            }
-            None => {
-                // No retry scheduled
-                continue;
-            }
-        }
-
-        match previous_failed_send.message_type {
-            notify::MessageType::StartupSuccess => {
-                let _ = send_to_one(
-                    n,
-                    &previous_failed_send.ctx,
-                    notify::MessageType::StartupSuccess,
-                );
-            }
-            notify::MessageType::StartupFailed => {
-                let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
-                    // Logic error, should never happen
-                    continue;
-                };
-
-                if t.instant.elapsed() < settings.monitor.max_allowed_startup_time {
-                    let _ = send_to_one(
-                        n,
-                        &previous_failed_send.ctx,
-                        notify::MessageType::StartupFailed,
-                    );
-                }
-            }
-            notify::MessageType::Reminder => {
-                let Some(t) = &n.state().time_of_next_reminder else {
-                    // Logic error, should never happen
-                    continue;
-                };
-
-                if t > now {
-                    // Not yet due for reminder retry, skip
-                    continue;
-                }
-
-                let _ = send_to_one(n, &previous_failed_send.ctx, notify::MessageType::Reminder);
-            }
-            notify::MessageType::Alert => {
-                let _ = send_to_one(n, &previous_failed_send.ctx, notify::MessageType::Alert);
-            }
-        }
-    }
 }
