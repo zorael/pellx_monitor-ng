@@ -6,7 +6,7 @@ use crate::source;
 #[derive(Parser)]
 pub struct Cli {
     #[arg(
-        long = "source",
+        long,
         value_enum,
         value_name = "some source",
         ignore_case = true,
@@ -14,11 +14,14 @@ pub struct Cli {
     )]
     pub source: Option<source::ChoiceOfInputSource>,
 
-    #[arg(long = "config")]
+    #[arg(long)]
     pub config: Option<path::PathBuf>,
 
-    #[arg(long = "save")]
+    #[arg(long)]
     pub save: bool,
+
+    #[arg(long)]
+    pub disable_timestamps: bool,
 
     #[arg(short = 'v', long)]
     pub verbose: bool,

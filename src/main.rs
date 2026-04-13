@@ -4,6 +4,7 @@ mod compose;
 mod config;
 mod context;
 mod defaults;
+mod logging;
 mod notify;
 mod settings;
 mod source;
@@ -42,11 +43,11 @@ fn main() -> process::ExitCode {
     let config = match resolve_config(cli.config.as_deref(), cli.save) {
         Ok(config) => Some(config),
         Err(err) if cli.save => {
-            eprintln!("Error resolving config file: {err}");
+            logging::tseprintln!(cli.disable_timestamps, "Error resolving config file: {err}");
             return process::ExitCode::FAILURE;
         }
         Err(err) => {
-            eprintln!("Warning: {}", err);
+            logging::tseprintln!(cli.disable_timestamps, "Warning: {}", err);
             None
         }
     };
@@ -69,9 +70,12 @@ fn main() -> process::ExitCode {
     match settings.sanity_check() {
         Ok(()) => (),
         Err(errors) => {
-            eprintln!("Configuration sanity check failed with the following errors:");
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Configuration sanity check failed with the following errors:"
+            );
             for error in errors {
-                eprintln!("  - {error}");
+                logging::tseprintln!(settings.disable_timestamps, "  - {error}");
             }
             return process::ExitCode::FAILURE;
         }
@@ -104,7 +108,10 @@ fn init_source(
     match source.init() {
         Ok(()) => Ok(source),
         Err(err) => {
-            eprintln!("Failed to initialize input source! {err}");
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Failed to initialize input source! {err}"
+            );
             Err(process::ExitCode::FAILURE)
         }
     }
@@ -182,17 +189,19 @@ fn run_loop(
             .any(|n| n.state().has_due_retry(ctx.now.instant));
 
         if at_least_one_notifier_is_due_for_retry {
-            send_retries(&mut notifiers, &ctx.now.instant, &settings);
+            send_retries(&mut notifiers, &settings, &ctx.now.instant);
         }
 
         let reading = source.read();
         let reading_changed = reading != ctx.previous_reading;
         let is_first_iteration = ctx.loop_iteration == 0;
 
-        println!(
-            "{}: {reading:?}/{:?} => {reading_changed}",
-            ctx.loop_iteration, ctx.previous_reading
-        );
+        if settings.debug {
+            println!(
+                "{}: {reading:?}/{:?} => {reading_changed}",
+                ctx.loop_iteration, ctx.previous_reading
+            );
+        }
 
         if reading_changed {
             // Reset
@@ -232,7 +241,10 @@ fn run_loop(
                     None => {
                         // First loop after going low, can't have started up yet
                         // (provided startup_duration > 0)
-                        println!("-- NEW LOW --");
+                        if settings.debug {
+                            logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
+                        }
+
                         ctx.time_of_startup_from_low = Some(time::Timestamp::now());
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
@@ -243,7 +255,12 @@ fn run_loop(
                     >= settings.monitor.max_allowed_startup_time
                 {
                     // Startup succeeded, can notify success
-                    send_to_all(&mut notifiers, &ctx, notify::MessageType::StartupSuccess);
+                    send_to_all(
+                        &mut notifiers,
+                        &settings,
+                        &ctx,
+                        notify::MessageType::StartupSuccess,
+                    );
                     ctx.startup_succeeded = true;
                 }
 
@@ -252,19 +269,26 @@ fn run_loop(
             }
             source::Reading::High => {
                 if reading_changed || is_first_iteration {
-                    println!("-- NEW HIGH --");
+                    if settings.debug {
+                        logging::tsprintln!(settings.disable_timestamps, "-- NEW HIGH --");
+                    }
 
                     if let Some(t) = ctx.time_of_startup_from_low
                         && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
                     {
                         // We went high again before startup duration elapsed, this is a startup failure
-                        send_to_all(&mut notifiers, &ctx, notify::MessageType::StartupFailed);
+                        send_to_all(
+                            &mut notifiers,
+                            &settings,
+                            &ctx,
+                            notify::MessageType::StartupFailed,
+                        );
                         end_loop(&mut ctx, settings.monitor.loop_interval);
                         continue;
                     }
 
                     // We just randomly went HIGH for no reason, this is an alert
-                    send_to_all(&mut notifiers, &ctx, notify::MessageType::Alert);
+                    send_to_all(&mut notifiers, &settings, &ctx, notify::MessageType::Alert);
                 } else {
                     // We have been HIGH for a while, it may be time for a reminder
                     let at_least_one_notifier_due_for_reminder = notifiers
@@ -272,7 +296,12 @@ fn run_loop(
                         .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
                     if at_least_one_notifier_due_for_reminder {
-                        send_to_all(&mut notifiers, &ctx, notify::MessageType::Reminder);
+                        send_to_all(
+                            &mut notifiers,
+                            &settings,
+                            &ctx,
+                            notify::MessageType::Reminder,
+                        );
                     }
                 }
 
@@ -288,7 +317,10 @@ fn end_loop(ctx: &mut context::Context, interval: std_time::Duration) {
     thread::sleep(interval);
 }
 
-fn resolve_config(config_path: Option<&path::Path>, save: bool) -> Result<config::Config, Box<dyn Error>> {
+fn resolve_config(
+    config_path: Option<&path::Path>,
+    save: bool,
+) -> Result<config::Config, Box<dyn Error>> {
     let config_path = match config_path {
         Some(path) if path.exists() => path,
         Some(path) => {
@@ -304,15 +336,17 @@ fn resolve_config(config_path: Option<&path::Path>, save: bool) -> Result<config
         }
         Err(_) if !config_path.exists() => None,
         Err(err) => {
-            eprintln!("Failed to load configuration: {err}");
+            let mut message = String::new();
+            message.push_str(&format!("Failed to load configuration: {err}"));
+
             let mut src = err.source();
 
             while let Some(e) = src {
-                eprintln!("  caused by: {e}");
+                message.push_str(&format!("\n  caused by: {e}"));
                 src = e.source();
             }
 
-            return Err(format!("Failed to load configuration: {err}").into());
+            return Err(message.into());
         }
     };
 
@@ -324,6 +358,7 @@ fn resolve_config(config_path: Option<&path::Path>, save: bool) -> Result<config
 
 fn send_to_all(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    settings: &settings::Settings,
     ctx: &context::Context,
     message_type: notify::MessageType,
 ) -> notify::NotificationResult {
@@ -336,12 +371,20 @@ fn send_to_all(
         match send_to_one(n, ctx, message_type) {
             notify::SendResult::Success(output) => {
                 if let Some(output) = output {
-                    println!("Output from notifier {}:\n{output}", n.name());
+                    logging::tsprintln!(
+                        settings.disable_timestamps,
+                        "Output from notifier {}:\n{output}",
+                        n.name()
+                    );
                 }
                 result.success += 1;
             }
             notify::SendResult::Failure(output) => {
-                eprintln!("Error from notifier {}:\n{output}", n.name());
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Error from notifier {}:\n{output}",
+                    n.name()
+                );
                 result.failure += 1;
             }
             notify::SendResult::TryAgainLater => result.try_again_later += 1,
@@ -367,11 +410,6 @@ fn send_to_one(
             }
             None => {
                 // No reminder scheduled? This should not happen
-                eprintln!(
-                    "Logic error: send_reminder_to_one called on notifier {} \
-                    but it is missing a time_of_next_reminder",
-                    n.name()
-                );
                 return notify::SendResult::Failure(
                     "Logic error: missing time_of_next_reminder".to_string(),
                 );
@@ -420,8 +458,8 @@ fn send_to_one(
 
 fn send_retries(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
-    now: &std_time::Instant,
     settings: &settings::Settings,
+    now: &std_time::Instant,
 ) {
     for n in notifiers {
         let Some(previous_failed_send) = n.state().previous_failed_send.clone() else {
@@ -453,10 +491,7 @@ fn send_retries(
             }
             notify::MessageType::StartupFailed => {
                 let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
-                    // Should never happen
-                    eprintln!(
-                        "Logic error: previous_failed_send has message_type StartupFailed but is missing time_of_startup_from_low"
-                    );
+                    // Logic error, should never happen
                     continue;
                 };
 
@@ -470,10 +505,7 @@ fn send_retries(
             }
             notify::MessageType::Reminder => {
                 let Some(t) = &n.state().time_of_next_reminder else {
-                    // Should never happen
-                    eprintln!(
-                        "Logic error: previous_failed_send has message_type Reminder but is missing time_of_next_reminder"
-                    );
+                    // Logic error, should never happen
                     continue;
                 };
 

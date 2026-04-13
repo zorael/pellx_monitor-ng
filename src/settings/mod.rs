@@ -11,6 +11,7 @@ pub use strings::MessageStrings;
 use crate::cli;
 use crate::config;
 use crate::defaults;
+use crate::logging;
 use crate::source;
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,7 @@ pub struct Settings {
     pub command: CommandSettings,
 
     pub config_file: path::PathBuf,
+    pub disable_timestamps: bool,
     pub verbose: bool,
     pub debug: bool,
     pub dry_run: bool,
@@ -43,6 +45,7 @@ impl Settings {
     }
 
     pub fn apply_cli(&mut self, cli: &cli::Cli) {
+        self.disable_timestamps = cli.disable_timestamps;
         self.verbose = cli.verbose;
         self.debug = cli.debug;
         self.dry_run = cli.dry_run;
@@ -83,14 +86,16 @@ impl Settings {
 
         match confy::store_path(&self.config_file, config) {
             Ok(()) => {
-                println!(
+                logging::tsprintln!(
+                    self.disable_timestamps,
                     "Config saved successfully to {}",
                     self.config_file.display()
                 );
                 process::ExitCode::SUCCESS
             }
             Err(err) => {
-                eprintln!(
+                logging::tseprintln!(
+                    self.disable_timestamps,
                     "Failed to save configuration to {}: {err}",
                     self.config_file.display()
                 );
@@ -111,6 +116,7 @@ impl Default for Settings {
             command: CommandSettings::default(),
 
             config_file: path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+            disable_timestamps: false,
             verbose: false,
             debug: false,
             dry_run: false,
