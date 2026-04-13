@@ -65,43 +65,8 @@ fn send_to_one(
         }
     }
 
-    let result = match message_type {
-        super::MessageType::Alert => n.send_alert(ctx),
-        super::MessageType::Reminder => n.send_reminder(ctx),
-        super::MessageType::StartupFailed => n.send_startup_failed(ctx),
-        super::MessageType::StartupSuccess => n.send_startup_success(ctx),
-    };
-
-    match result {
-        super::SendResult::Success(output) => {
-            match &message_type {
-                super::MessageType::StartupSuccess => {
-                    // End of the line, no reminders wanted
-                    n.state_mut().reset();
-                }
-                super::MessageType::Reminder => {
-                    n.state_mut().on_reminder_success();
-                    n.state_mut().bump_time_of_next_reminder();
-                }
-                _ => {
-                    // This kind of message type should have reminders.
-                    // We need to set the reminder timestamp at *some* point.
-                    // Is this not the right place?
-                    n.state_mut().bump_time_of_next_reminder();
-                }
-            }
-
-            // Reset failure state
-            n.state_mut().retry_count = 0;
-            super::SendResult::Success(output)
-        }
-        super::SendResult::Failure(output) => {
-            n.state_mut().on_failure(ctx, &message_type);
-            n.state_mut().bump_time_of_next_retry();
-            super::SendResult::Failure(output)
-        }
-        super::SendResult::TryAgainLater => super::SendResult::TryAgainLater,
-    }
+    let result = dispatch(n, ctx, &message_type);
+    apply_send_result(n, ctx, &message_type, &result)
 }
 
 pub fn send_retries(
@@ -130,12 +95,9 @@ pub fn send_retries(
         }
 
         match previous_failed_send.message_type {
-            super::MessageType::StartupSuccess => {
-                let _ = send_to_one(
-                    n,
-                    &previous_failed_send.ctx,
-                    super::MessageType::StartupSuccess,
-                );
+            super::MessageType::StartupSuccess | super::MessageType::Alert => {
+                // Should always be retried at any opportunity
+                // Drop down and dispatch
             }
             super::MessageType::StartupFailed => {
                 let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
@@ -144,11 +106,8 @@ pub fn send_retries(
                 };
 
                 if t.instant.elapsed() < settings.monitor.max_allowed_startup_time {
-                    let _ = send_to_one(
-                        n,
-                        &previous_failed_send.ctx,
-                        super::MessageType::StartupFailed,
-                    );
+                    // Not enough time has passed to be able to call it a startup failure
+                    continue;
                 }
             }
             super::MessageType::Reminder => {
@@ -162,12 +121,72 @@ pub fn send_retries(
                     continue;
                 }
 
-                let _ = send_to_one(n, &previous_failed_send.ctx, super::MessageType::Reminder);
-            }
-            super::MessageType::Alert => {
-                let _ = send_to_one(n, &previous_failed_send.ctx, super::MessageType::Alert);
+                // Drop down and dispatch
             }
         }
+
+        let result = dispatch(
+            n,
+            &previous_failed_send.ctx,
+            &previous_failed_send.message_type,
+        );
+        apply_send_result(
+            n,
+            &previous_failed_send.ctx,
+            &previous_failed_send.message_type,
+            &result,
+        );
+    }
+}
+
+fn dispatch(
+    n: &mut Box<dyn super::StatefulNotifier>,
+    ctx: &context::Context,
+    message_type: &super::MessageType,
+) -> super::SendResult {
+    match message_type {
+        super::MessageType::Alert => n.send_alert(ctx),
+        super::MessageType::Reminder => n.send_reminder(ctx),
+        super::MessageType::StartupFailed => n.send_startup_failed(ctx),
+        super::MessageType::StartupSuccess => n.send_startup_success(ctx),
+    }
+}
+
+fn apply_send_result(
+    n: &mut Box<dyn super::StatefulNotifier>,
+    ctx: &context::Context,
+    message_type: &super::MessageType,
+    result: &super::SendResult,
+) -> super::SendResult {
+    match result {
+        super::SendResult::Success(output) => {
+            match &message_type {
+                super::MessageType::StartupSuccess => {
+                    // End of the line, no reminders wanted
+                    n.state_mut().reset();
+                }
+                super::MessageType::Reminder => {
+                    n.state_mut().on_reminder_success();
+                    n.state_mut().bump_time_of_next_reminder();
+                }
+                _ => {
+                    // This kind of message type should have reminders.
+                    // We need to set the reminder timestamp at *some* point.
+                    // Is this not the right place?
+                    n.state_mut().bump_time_of_next_reminder();
+                }
+            }
+
+            // Reset failure state
+            n.state_mut().retry_count = 0;
+            super::SendResult::Success(output.clone())
+        }
+        super::SendResult::Failure(output) => {
+            n.state_mut().on_failure(ctx, message_type);
+            n.state_mut().bump_time_of_next_retry();
+            super::SendResult::Failure(output.clone())
+        }
+        super::SendResult::TryAgainLater => super::SendResult::TryAgainLater,
     }
 }
 
