@@ -11,8 +11,11 @@ pub mod program_metadata {
 
 pub mod gpio {
     pub const PIN: u8 = 24;
-    pub const MOCK_MOD: u32 = 20;
-    pub const MOCK_DIV: u32 = 10;
+}
+
+pub mod dummy {
+    pub const MODULUS: u32 = 30;
+    pub const THRESHOLD: u32 = 15;
 }
 
 pub mod monitor {

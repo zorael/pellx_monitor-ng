@@ -2,8 +2,6 @@ use clap::ValueEnum;
 use rppal::gpio;
 use serde::{Deserialize, Serialize};
 
-use crate::defaults;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Reading {
     Low,
@@ -67,17 +65,23 @@ impl GpioInputSource {
     }
 }
 
-pub struct MockInputSource {
+pub struct DummyInputSource {
     counter: u32,
+    modulus: u32,
+    threshold: u32,
 }
 
-impl MockInputSource {
-    pub fn new() -> Self {
-        Self { counter: 0 }
+impl DummyInputSource {
+    pub fn new(modulus: u32, threshold: u32) -> Self {
+        Self {
+            counter: 0,
+            modulus,
+            threshold,
+        }
     }
 }
 
-impl InputSource for MockInputSource {
+impl InputSource for DummyInputSource {
     fn init(&mut self) -> Result<(), String> {
         Ok(())
     }
@@ -85,7 +89,7 @@ impl InputSource for MockInputSource {
     fn read(&mut self) -> Reading {
         self.counter += 1;
 
-        if (self.counter % defaults::gpio::MOCK_MOD) < defaults::gpio::MOCK_DIV {
+        if (self.counter % self.modulus) < self.threshold {
             Reading::Low
         } else {
             Reading::High

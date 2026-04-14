@@ -18,6 +18,7 @@ use crate::source;
 pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
+    pub dummy_source: DummyInputSourceSettings,
     pub println: PrintlnSettings,
     pub slack: SlackSettings,
     pub batsign: BatsignSettings,
@@ -37,6 +38,7 @@ impl Settings {
 
         self.monitor.apply_config(&config.monitor);
         self.gpio.apply_config(&config.gpio);
+        self.dummy_source.apply_config(&config.dummy_input);
         self.println.apply_config(&config.println);
         self.slack.apply_config(&config.slack);
         self.batsign.apply_config(&config.batsign);
@@ -148,6 +150,32 @@ impl Default for GpioSettings {
     fn default() -> Self {
         Self {
             pin: defaults::gpio::PIN,
+        }
+    }
+}
+
+pub struct DummyInputSourceSettings {
+    pub modulus: u32,
+    pub threshold: u32,
+}
+
+impl DummyInputSourceSettings {
+    pub fn apply_config(&mut self, config: &config::DumyInputSourceConfig) {
+        if let Some(modulus) = config.modulus {
+            self.modulus = modulus;
+        }
+
+        if let Some(divisor) = config.threshold {
+            self.threshold = divisor;
+        }
+    }
+}
+
+impl Default for DummyInputSourceSettings {
+    fn default() -> Self {
+        Self {
+            modulus: defaults::dummy::MODULUS,
+            threshold: defaults::dummy::THRESHOLD,
         }
     }
 }

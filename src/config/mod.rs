@@ -15,6 +15,7 @@ use crate::source;
 pub struct Config {
     pub monitor: MonitorConfig,
     pub gpio: GpioConfig,
+    pub dummy_input: DumyInputSourceConfig,
     pub slack: SlackConfig,
     pub batsign: BatsignConfig,
     pub command: CommandConfig,
@@ -31,6 +32,10 @@ impl From<&settings::Settings> for Config {
             },
             gpio: GpioConfig {
                 pin: Some(settings.gpio.pin),
+            },
+            dummy_input: DumyInputSourceConfig {
+                modulus: Some(settings.dummy_source.modulus),
+                threshold: Some(settings.dummy_source.threshold),
             },
             slack: SlackConfig {
                 strings: Some(settings.slack.strings.clone().into()),
@@ -74,4 +79,11 @@ pub struct MonitorConfig {
 #[serde(default)]
 pub struct GpioConfig {
     pub pin: Option<u8>,
+}
+
+#[derive(Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct DumyInputSourceConfig {
+    pub modulus: Option<u32>,
+    pub threshold: Option<u32>,
 }

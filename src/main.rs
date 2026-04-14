@@ -134,7 +134,10 @@ fn init_source(
         source::ChoiceOfInputSource::Gpio => {
             Box::new(source::GpioInputSource::new(settings.gpio.pin))
         }
-        source::ChoiceOfInputSource::Dummy => Box::new(source::MockInputSource::new()),
+        source::ChoiceOfInputSource::Dummy => Box::new(source::DummyInputSource::new(
+            settings.dummy_source.modulus,
+            settings.dummy_source.threshold,
+        )),
     };
 
     match source.init() {
