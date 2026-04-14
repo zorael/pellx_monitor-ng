@@ -14,6 +14,7 @@ use crate::defaults;
 use crate::logging;
 use crate::source;
 
+#[derive(Default)]
 pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
@@ -22,7 +23,6 @@ pub struct Settings {
     pub batsign: BatsignSettings,
     pub command: CommandSettings,
 
-    pub config_file: path::PathBuf,
     pub disable_timestamps: bool,
     pub verbose: bool,
     pub debug: bool,
@@ -100,25 +100,6 @@ impl Settings {
                 );
                 process::ExitCode::FAILURE
             }
-        }
-    }
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            monitor: MonitorSettings::default(),
-            gpio: GpioSettings::default(),
-            println: PrintlnSettings::default(),
-            slack: SlackSettings::default(),
-            batsign: BatsignSettings::default(),
-            command: CommandSettings::default(),
-
-            config_file: path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
-            disable_timestamps: false,
-            verbose: false,
-            debug: false,
-            dry_run: false,
         }
     }
 }
