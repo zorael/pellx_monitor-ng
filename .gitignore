@@ -22,7 +22,7 @@
 *.zip
 /push*
 /config.toml
-/pellx_monitor-wg*
+/pellx*
 /report.*
 *.bak
 /RELEASE.md
