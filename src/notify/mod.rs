@@ -119,6 +119,10 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             Err(output) => SendResult::Failure(output),
         }
     }
+
+    fn stagger_delay(&self) -> Option<time::Duration> {
+        self.backend.stagger_delay()
+    }
 }
 
 #[derive(Default, Clone)]
@@ -198,6 +202,7 @@ pub trait NotificationSender {
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult;
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult;
     fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult;
+    fn stagger_delay(&self) -> Option<time::Duration>;
 }
 
 pub trait StateCarrier {

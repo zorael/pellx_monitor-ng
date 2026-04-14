@@ -1,3 +1,5 @@
+use std::time;
+
 use crate::context;
 use crate::notify;
 use crate::settings;
@@ -27,6 +29,10 @@ impl super::Backend for PrintlnBackend {
 
     fn strings(&self) -> &settings::MessageStrings {
         &self.strings
+    }
+
+    fn stagger_delay(&self) -> Option<time::Duration> {
+        None
     }
 
     fn emit(

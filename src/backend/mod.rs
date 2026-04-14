@@ -8,6 +8,8 @@ pub use command::CommandBackend;
 pub use println::PrintlnBackend;
 pub use slack::SlackBackend;
 
+use std::time;
+
 use crate::compose;
 use crate::context;
 use crate::notify;
@@ -49,6 +51,10 @@ pub trait Backend {
 
     fn compose_startup_success_display(&self, ctx: &context::Context) -> String {
         compose::compose_startup_success_message(ctx, self.strings())
+    }
+
+    fn stagger_delay(&self) -> Option<time::Duration> {
+        Some(time::Duration::from_millis(300))
     }
 
     fn emit(

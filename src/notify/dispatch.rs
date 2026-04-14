@@ -1,3 +1,4 @@
+use std::thread;
 use std::time;
 
 use crate::context;
@@ -10,8 +11,6 @@ pub fn send_to_all(
     ctx: &context::Context,
     message_type: super::MessageType,
 ) -> NotificationResult {
-    const RATE_LIMIT_DELAY: time::Duration = time::Duration::from_millis(300);
-
     let mut result = NotificationResult {
         total: notifiers.len(),
         ..Default::default()
@@ -20,7 +19,9 @@ pub fn send_to_all(
     for n in notifiers {
         if n.id() > 0 {
             // Rate limit to avoid overwhelming backends
-            std::thread::sleep(RATE_LIMIT_DELAY);
+            if let Some(stagger_delay) = n.stagger_delay() {
+                thread::sleep(stagger_delay);
+            }
         }
         match send_to_one(n, ctx, message_type) {
             super::SendResult::Success(output) => {
@@ -99,6 +100,9 @@ pub fn send_retries(
                 continue;
             }
         }
+
+        // Consider staggering messages here later if server 429 turns out to be an issue.
+        // It currently hasn't shown to be, hence why it's not implemented.
 
         match previous_failed_send.message_type {
             super::MessageType::StartupSuccess | super::MessageType::Alert => {
