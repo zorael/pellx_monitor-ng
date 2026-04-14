@@ -1,5 +1,3 @@
-use std::time;
-
 use crate::context;
 use crate::notify;
 use crate::settings;

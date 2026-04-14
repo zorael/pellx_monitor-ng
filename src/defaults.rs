@@ -20,6 +20,4 @@ pub mod monitor {
 
     pub const LOOP_INTERVAL: time::Duration = time::Duration::from_secs(1);
     pub const MAX_ALLOWED_STARTUP_TIME: time::Duration = time::Duration::from_secs(5);
-    pub const REMINDER_INTERVAL: time::Duration = time::Duration::from_secs(5);
-    pub const NOTIFICATION_RETRY_INTERVAL: time::Duration = time::Duration::from_secs(5);
 }
