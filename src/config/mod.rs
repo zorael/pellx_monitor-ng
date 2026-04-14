@@ -28,7 +28,7 @@ impl From<&settings::Settings> for Config {
             monitor: MonitorConfig {
                 source: settings.monitor.source,
                 loop_interval: Some(settings.monitor.loop_interval),
-                max_allowed_startup_time: Some(settings.monitor.max_allowed_startup_time),
+                required_time_for_startup: Some(settings.monitor.required_time_for_startup),
             },
             gpio: GpioConfig {
                 pin: Some(settings.gpio.pin),
@@ -72,7 +72,7 @@ pub struct MonitorConfig {
     pub loop_interval: Option<time::Duration>,
 
     #[serde(with = "humantime_serde")]
-    pub max_allowed_startup_time: Option<time::Duration>,
+    pub required_time_for_startup: Option<time::Duration>,
 }
 
 #[derive(Default, Serialize, Deserialize)]

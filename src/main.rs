@@ -293,7 +293,7 @@ fn handle_low_reading(
         }
     };
 
-    if time_of_startup_from_low.instant.elapsed() >= settings.monitor.max_allowed_startup_time {
+    if time_of_startup_from_low.instant.elapsed() >= settings.monitor.required_time_for_startup {
         // Startup succeeded, can notify success
         let result = notify::send_to_all(
             notifiers,
@@ -328,7 +328,7 @@ fn handle_high_reading(
         }
 
         if let Some(t) = ctx.time_of_startup_from_low
-            && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
+            && t.instant.elapsed() < settings.monitor.required_time_for_startup
         {
             // We went high again before startup duration elapsed, this is a startup failure
             let result =

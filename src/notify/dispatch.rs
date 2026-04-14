@@ -113,7 +113,7 @@ pub fn send_retries(
                     continue;
                 };
 
-                if t.instant.elapsed() < settings.monitor.max_allowed_startup_time {
+                if t.instant.elapsed() < settings.monitor.required_time_for_startup {
                     // Not enough time has passed to be able to call it a startup failure
                     continue;
                 }
