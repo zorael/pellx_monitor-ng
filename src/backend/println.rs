@@ -31,10 +31,6 @@ impl super::Backend for PrintlnBackend {
         &self.strings
     }
 
-    fn stagger_delay(&self) -> Option<time::Duration> {
-        None
-    }
-
     fn emit(
         &self,
         _ctx: &context::Context,

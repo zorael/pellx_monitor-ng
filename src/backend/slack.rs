@@ -1,3 +1,5 @@
+use std::time;
+
 use crate::compose;
 use crate::context;
 use crate::notify;
@@ -31,6 +33,19 @@ impl SlackBackend {
             strings,
         }
     }
+
+    fn compose_common(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+        match message_type {
+            notify::MessageType::Alert => compose::compose_alert_message(ctx, &self.strings),
+            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, &self.strings),
+            notify::MessageType::StartupFailed => {
+                compose::compose_startup_failed_message(ctx, &self.strings)
+            }
+            notify::MessageType::StartupSuccess => {
+                compose::compose_startup_success_message(ctx, &self.strings)
+            }
+        }
+    }
 }
 
 impl super::Backend for SlackBackend {
@@ -46,13 +61,17 @@ impl super::Backend for SlackBackend {
         &self.strings
     }
 
-    fn compose_alert(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_alert_message(ctx, &self.strings);
+    fn compose(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+        let message = self.compose_common(ctx, message_type);
         serde_json::json!({ "text": message }).to_string()
     }
 
-    fn compose_alert_display(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_alert_message(ctx, &self.strings);
+    fn compose_display(
+        &self,
+        ctx: &context::Context,
+        message_type: &notify::MessageType,
+    ) -> String {
+        let message = self.compose_common(ctx, message_type);
         let value = serde_json::json!({ "text": message });
 
         match serde_json::to_string_pretty(&value) {
@@ -61,49 +80,8 @@ impl super::Backend for SlackBackend {
         }
     }
 
-    fn compose_reminder(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_reminder_message(ctx, &self.strings);
-        serde_json::json!({ "text": message }).to_string()
-    }
-
-    fn compose_reminder_display(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_reminder_message(ctx, &self.strings);
-        let value = serde_json::json!({ "text": message });
-
-        match serde_json::to_string_pretty(&value) {
-            Ok(pretty) => pretty,
-            Err(_) => value.to_string(),
-        }
-    }
-
-    fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_startup_failed_message(ctx, &self.strings);
-        serde_json::json!({ "text": message }).to_string()
-    }
-
-    fn compose_startup_failed_display(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_startup_failed_message(ctx, &self.strings);
-        let value = serde_json::json!({ "text": message });
-
-        match serde_json::to_string_pretty(&value) {
-            Ok(pretty) => pretty,
-            Err(_) => value.to_string(),
-        }
-    }
-
-    fn compose_startup_success(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_startup_success_message(ctx, &self.strings);
-        serde_json::json!({ "text": message }).to_string()
-    }
-
-    fn compose_startup_success_display(&self, ctx: &context::Context) -> String {
-        let message = compose::compose_startup_success_message(ctx, &self.strings);
-        let value = serde_json::json!({ "text": message });
-
-        match serde_json::to_string_pretty(&value) {
-            Ok(pretty) => pretty,
-            Err(_) => value.to_string(),
-        }
+    fn stagger_delay(&self) -> time::Duration {
+        time::Duration::from_millis(300)
     }
 
     fn emit(

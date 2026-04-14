@@ -19,9 +19,7 @@ pub fn send_to_all(
     for n in notifiers {
         if n.id() > 0 {
             // Rate limit to avoid overwhelming backends
-            if let Some(stagger_delay) = n.stagger_delay() {
-                thread::sleep(stagger_delay);
-            }
+            thread::sleep(n.stagger_delay());
         }
         match send_to_one(n, ctx, message_type) {
             super::SendResult::Success(output) => {

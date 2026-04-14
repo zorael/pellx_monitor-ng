@@ -20,40 +20,38 @@ pub trait Backend {
     fn name(&self) -> &str;
     fn strings(&self) -> &settings::MessageStrings;
 
-    fn compose_alert(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx, self.strings())
+    fn compose(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+        match message_type {
+            notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
+            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
+            notify::MessageType::StartupFailed => {
+                compose::compose_startup_failed_message(ctx, self.strings())
+            }
+            notify::MessageType::StartupSuccess => {
+                compose::compose_startup_success_message(ctx, self.strings())
+            }
+        }
     }
 
-    fn compose_alert_display(&self, ctx: &context::Context) -> String {
-        compose::compose_alert_message(ctx, self.strings())
+    fn compose_display(
+        &self,
+        ctx: &context::Context,
+        message_type: &notify::MessageType,
+    ) -> String {
+        match message_type {
+            notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
+            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
+            notify::MessageType::StartupFailed => {
+                compose::compose_startup_failed_message(ctx, self.strings())
+            }
+            notify::MessageType::StartupSuccess => {
+                compose::compose_startup_success_message(ctx, self.strings())
+            }
+        }
     }
 
-    fn compose_reminder(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx, self.strings())
-    }
-
-    fn compose_reminder_display(&self, ctx: &context::Context) -> String {
-        compose::compose_reminder_message(ctx, self.strings())
-    }
-
-    fn compose_startup_failed(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx, self.strings())
-    }
-
-    fn compose_startup_failed_display(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_failed_message(ctx, self.strings())
-    }
-
-    fn compose_startup_success(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_success_message(ctx, self.strings())
-    }
-
-    fn compose_startup_success_display(&self, ctx: &context::Context) -> String {
-        compose::compose_startup_success_message(ctx, self.strings())
-    }
-
-    fn stagger_delay(&self) -> Option<time::Duration> {
-        Some(time::Duration::from_millis(300))
+    fn stagger_delay(&self) -> time::Duration {
+        time::Duration::ZERO
     }
 
     fn emit(

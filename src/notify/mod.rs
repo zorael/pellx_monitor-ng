@@ -48,14 +48,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_alert_display(ctx);
+            let message = self.backend.compose_display(ctx, &MessageType::Alert);
 
             println!("DRY RUN: send_alert");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose_alert(ctx);
+        let message = self.backend.compose(ctx, &MessageType::Alert);
 
         match self.backend.emit(ctx, &message, &MessageType::Alert) {
             Ok(output) => SendResult::Success(output),
@@ -65,14 +65,14 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_reminder_display(ctx);
+            let message = self.backend.compose_display(ctx, &MessageType::Reminder);
 
             println!("DRY RUN: send_reminder");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose_reminder(ctx);
+        let message = self.backend.compose(ctx, &MessageType::Reminder);
 
         match self.backend.emit(ctx, &message, &MessageType::Reminder) {
             Ok(output) => SendResult::Success(output),
@@ -82,14 +82,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_startup_failed_display(ctx);
+            let message = self
+                .backend
+                .compose_display(ctx, &MessageType::StartupFailed);
 
             println!("DRY RUN: send_startup_failed");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose_startup_failed(ctx);
+        let message = self.backend.compose(ctx, &MessageType::StartupFailed);
 
         match self
             .backend
@@ -102,14 +104,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_startup_success_display(ctx);
+            let message = self
+                .backend
+                .compose_display(ctx, &MessageType::StartupSuccess);
 
             println!("DRY RUN: send_startup_success");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose_startup_success(ctx);
+        let message = self.backend.compose(ctx, &MessageType::StartupSuccess);
 
         match self
             .backend
@@ -120,7 +124,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         }
     }
 
-    fn stagger_delay(&self) -> Option<time::Duration> {
+    fn stagger_delay(&self) -> time::Duration {
         self.backend.stagger_delay()
     }
 }
@@ -203,7 +207,7 @@ pub trait NotificationSender {
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult;
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult;
     fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult;
-    fn stagger_delay(&self) -> Option<time::Duration>;
+    fn stagger_delay(&self) -> time::Duration;
 }
 
 pub trait StateCarrier {

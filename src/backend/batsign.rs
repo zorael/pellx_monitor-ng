@@ -1,3 +1,5 @@
+use std::time;
+
 use crate::context;
 use crate::notify;
 use crate::settings;
@@ -43,6 +45,10 @@ impl super::Backend for BatsignBackend {
 
     fn strings(&self) -> &settings::MessageStrings {
         &self.strings
+    }
+
+    fn stagger_delay(&self) -> time::Duration {
+        time::Duration::from_millis(300)
     }
 
     fn emit(

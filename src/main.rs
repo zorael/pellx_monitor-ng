@@ -328,7 +328,8 @@ fn handle_high_reading(
             && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
         {
             // We went high again before startup duration elapsed, this is a startup failure
-            let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::StartupFailed);
+            let result =
+                notify::send_to_all(notifiers, settings, ctx, notify::MessageType::StartupFailed);
 
             if result.success != result.total {
                 logging::tseprintln!(
@@ -359,7 +360,8 @@ fn handle_high_reading(
             .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
         if at_least_one_notifier_due_for_reminder {
-            let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
+            let result =
+                notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
 
             if result.success != result.total {
                 logging::tseprintln!(
