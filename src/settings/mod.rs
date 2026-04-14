@@ -160,7 +160,7 @@ pub struct DummyInputSourceSettings {
 }
 
 impl DummyInputSourceSettings {
-    pub fn apply_config(&mut self, config: &config::DumyInputSourceConfig) {
+    pub fn apply_config(&mut self, config: &config::DummyInputSourceConfig) {
         if let Some(modulus) = config.modulus {
             self.modulus = modulus;
         }
