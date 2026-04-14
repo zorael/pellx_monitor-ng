@@ -108,8 +108,6 @@ pub struct MonitorSettings {
     pub source: source::ChoiceOfInputSource,
     pub loop_interval: time::Duration,
     pub max_allowed_startup_time: time::Duration,
-    pub notification_retry_interval: time::Duration,
-    pub reminder_interval: time::Duration,
 }
 
 impl Default for MonitorSettings {
@@ -118,8 +116,6 @@ impl Default for MonitorSettings {
             source: source::ChoiceOfInputSource::Gpio,
             loop_interval: defaults::monitor::LOOP_INTERVAL,
             max_allowed_startup_time: defaults::monitor::MAX_ALLOWED_STARTUP_TIME,
-            notification_retry_interval: defaults::monitor::NOTIFICATION_RETRY_INTERVAL,
-            reminder_interval: defaults::monitor::REMINDER_INTERVAL,
         }
     }
 }
@@ -132,14 +128,6 @@ impl MonitorSettings {
 
         if let Some(max_allowed_startup_time) = config.max_allowed_startup_time {
             self.max_allowed_startup_time = max_allowed_startup_time;
-        }
-
-        if let Some(notification_retry_interval) = config.notification_retry_interval {
-            self.notification_retry_interval = notification_retry_interval;
-        }
-
-        if let Some(reminder_interval) = config.reminder_interval {
-            self.reminder_interval = reminder_interval;
         }
     }
 }

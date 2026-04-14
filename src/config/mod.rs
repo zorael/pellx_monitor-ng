@@ -28,8 +28,6 @@ impl From<&settings::Settings> for Config {
                 source: settings.monitor.source,
                 loop_interval: Some(settings.monitor.loop_interval),
                 max_allowed_startup_time: Some(settings.monitor.max_allowed_startup_time),
-                notification_retry_interval: Some(settings.monitor.notification_retry_interval),
-                reminder_interval: Some(settings.monitor.reminder_interval),
             },
             gpio: GpioConfig {
                 pin: Some(settings.gpio.pin),
@@ -70,12 +68,6 @@ pub struct MonitorConfig {
 
     #[serde(with = "humantime_serde")]
     pub max_allowed_startup_time: Option<time::Duration>,
-
-    #[serde(with = "humantime_serde")]
-    pub notification_retry_interval: Option<time::Duration>,
-
-    #[serde(with = "humantime_serde")]
-    pub reminder_interval: Option<time::Duration>,
 }
 
 #[derive(Default, Serialize, Deserialize)]
