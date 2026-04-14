@@ -1,12 +1,12 @@
 mod backends;
 mod strings;
 
+pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSettings};
+pub use strings::MessageStrings;
+
 use std::path;
 use std::process;
 use std::time;
-
-pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSettings};
-pub use strings::MessageStrings;
 
 use crate::cli;
 use crate::config;
