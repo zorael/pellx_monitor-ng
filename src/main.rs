@@ -40,15 +40,37 @@ fn main() -> process::ExitCode {
         return process::ExitCode::SUCCESS;
     }
 
-    let config = match resolve_config(cli.config.as_deref(), cli.save) {
-        Ok(config) => Some(config),
-        Err(err) if cli.save => {
-            logging::tseprintln!(cli.disable_timestamps, "Error resolving config file: {err}");
+    let config_path = match cli.config.as_deref() {
+        Some(path) if path.exists() => path,
+        Some(path) if cli.save => path, // allow saving to non-existent path
+        Some(path) => {
+            logging::tseprintln!(
+                cli.disable_timestamps,
+                "Config file {} does not exist",
+                path.display()
+            );
             return process::ExitCode::FAILURE;
         }
+        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+    };
+
+    let config = match load_config_file(config_path) {
+        Ok(config) => config,
+        //Err(_) if !config_path.exists() => None,
         Err(err) => {
-            logging::tseprintln!(cli.disable_timestamps, "Warning: {}", err);
-            None
+            logging::tseprintln!(
+                cli.disable_timestamps,
+                "Failed to load configuration: {err}"
+            );
+
+            let mut src = err.source();
+
+            while let Some(e) = src {
+                eprintln!("\n  caused by: {e}");
+                src = e.source();
+            }
+
+            return process::ExitCode::FAILURE;
         }
     };
 
@@ -81,7 +103,7 @@ fn main() -> process::ExitCode {
     }
 
     if cli.save {
-        return settings.save();
+        return settings.save(config_path);
     }
 
     let source = match init_source(&settings) {
@@ -92,45 +114,6 @@ fn main() -> process::ExitCode {
     let notifiers = build_notifiers(&settings);
 
     run_loop(notifiers, source, settings)
-}
-
-fn resolve_config(
-    config_path: Option<&path::Path>,
-    save: bool,
-) -> Result<config::Config, Box<dyn Error>> {
-    let config_path = match config_path {
-        Some(path) if path.exists() => path,
-        Some(path) => {
-            return Err(format!("Config file {} does not exist", path.display()).into());
-        }
-        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
-    };
-
-    let config = match load_config_file(config_path) {
-        Ok(config) => config,
-        Err(_) if !config_path.exists() && !save => {
-            return Err(format!("No config file found at {}", config_path.display()).into());
-        }
-        Err(_) if !config_path.exists() => None,
-        Err(err) => {
-            let mut message = String::new();
-            message.push_str(&format!("Failed to load configuration: {err}"));
-
-            let mut src = err.source();
-
-            while let Some(e) = src {
-                message.push_str(&format!("\n  caused by: {e}"));
-                src = e.source();
-            }
-
-            return Err(message.into());
-        }
-    };
-
-    match config {
-        Some(config) => Ok(config),
-        None => Err(format!("No config file found at {}", config_path.display()).into()),
-    }
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {

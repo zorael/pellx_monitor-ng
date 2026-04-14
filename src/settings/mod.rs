@@ -80,15 +80,15 @@ impl Settings {
         }
     }
 
-    pub fn save(&self) -> process::ExitCode {
+    pub fn save(&self, config_path: &path::Path) -> process::ExitCode {
         let config = config::Config::from(self);
 
-        match confy::store_path(&self.config_file, config) {
+        match confy::store_path(config_path, config) {
             Ok(()) => {
                 logging::tsprintln!(
                     self.disable_timestamps,
                     "Config saved successfully to {}",
-                    self.config_file.display()
+                    config_path.display()
                 );
                 process::ExitCode::SUCCESS
             }
@@ -96,7 +96,7 @@ impl Settings {
                 logging::tseprintln!(
                     self.disable_timestamps,
                     "Failed to save configuration to {}: {err}",
-                    self.config_file.display()
+                    config_path.display()
                 );
                 process::ExitCode::FAILURE
             }
