@@ -16,7 +16,6 @@ use crate::notify;
 use crate::settings;
 
 pub trait Backend {
-    #[allow(unused)]
     fn id(&self) -> usize;
     fn name(&self) -> &str;
     fn strings(&self) -> &settings::MessageStrings;

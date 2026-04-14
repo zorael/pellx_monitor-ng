@@ -197,7 +197,6 @@ impl NotifierState {
 }
 
 pub trait NotificationSender {
-    #[allow(unused)]
     fn id(&self) -> usize;
     fn name(&self) -> &str;
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult;

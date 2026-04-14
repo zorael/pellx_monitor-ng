@@ -224,7 +224,6 @@ fn apply_send_result(
 
 #[derive(Default)]
 pub struct NotificationResult {
-    #[allow(unused)]
     pub total: usize,
     pub success: usize,
     pub failure: usize,
