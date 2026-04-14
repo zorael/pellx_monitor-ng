@@ -226,7 +226,6 @@ fn run_loop(
 
         let reading = source.read();
         let reading_changed = reading != ctx.previous_reading;
-        let is_first_iteration = ctx.loop_iteration == 0;
 
         if settings.debug {
             println!(
@@ -253,98 +252,86 @@ fn run_loop(
             ctx.time_of_state_change = Some(time::Timestamp::now());
         }
 
-        if ctx.time_of_state_change.is_none() && reading == source::Reading::Low {
-            // Program was just started, state has never changed from low
-            end_loop(&mut ctx, settings.monitor.loop_interval);
-            continue;
+        match reading {
+            source::Reading::Low => handle_low_reading(&mut notifiers, &mut ctx, &settings),
+            source::Reading::High => {
+                handle_high_reading(&mut notifiers, &mut ctx, &settings, reading_changed)
+            }
         }
 
-        match reading {
-            source::Reading::Low => {
-                if ctx.startup_succeeded {
-                    // All is well
-                    end_loop(&mut ctx, settings.monitor.loop_interval);
-                    continue;
-                }
+        end_loop(&mut ctx, settings.monitor.loop_interval);
+    }
+}
 
-                // We are low, but we don't know if we have completely started up yet
-                let time_of_startup_from_low = match ctx.time_of_startup_from_low {
-                    Some(t) => t,
-                    None => {
-                        // First loop after going low, can't have started up yet
-                        // (provided startup_duration > 0)
-                        if settings.debug {
-                            logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
-                        }
+fn handle_low_reading(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &mut context::Context,
+    settings: &settings::Settings,
+) {
+    if ctx.time_of_state_change.is_none() || ctx.startup_succeeded {
+        // Early return.
+        // Either program was just started and state has never changed from low
+        // or startup succeeded and all is well
+        return;
+    }
 
-                        ctx.time_of_startup_from_low = Some(time::Timestamp::now());
-                        end_loop(&mut ctx, settings.monitor.loop_interval);
-                        continue;
-                    }
-                };
-
-                if time_of_startup_from_low.instant.elapsed()
-                    >= settings.monitor.max_allowed_startup_time
-                {
-                    // Startup succeeded, can notify success
-                    notify::send_to_all(
-                        &mut notifiers,
-                        &settings,
-                        &ctx,
-                        notify::MessageType::StartupSuccess,
-                    );
-                    ctx.startup_succeeded = true;
-                }
-
-                end_loop(&mut ctx, settings.monitor.loop_interval);
-                continue;
+    // We are low, but we don't know if we have completely started up yet
+    let time_of_startup_from_low = match ctx.time_of_startup_from_low {
+        Some(t) => t,
+        None => {
+            // First loop after going low, can't have started up yet
+            // (provided startup_duration > 0)
+            if settings.debug {
+                logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
             }
-            source::Reading::High => {
-                if reading_changed || is_first_iteration {
-                    if settings.debug {
-                        logging::tsprintln!(settings.disable_timestamps, "-- NEW HIGH --");
-                    }
 
-                    if let Some(t) = ctx.time_of_startup_from_low
-                        && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
-                    {
-                        // We went high again before startup duration elapsed, this is a startup failure
-                        notify::send_to_all(
-                            &mut notifiers,
-                            &settings,
-                            &ctx,
-                            notify::MessageType::StartupFailed,
-                        );
-                        end_loop(&mut ctx, settings.monitor.loop_interval);
-                        continue;
-                    }
+            ctx.time_of_startup_from_low = Some(time::Timestamp::now());
+            return;
+        }
+    };
 
-                    // We just randomly went HIGH for no reason, this is an alert
-                    notify::send_to_all(
-                        &mut notifiers,
-                        &settings,
-                        &ctx,
-                        notify::MessageType::Alert,
-                    );
-                } else {
-                    // We have been HIGH for a while, it may be time for a reminder
-                    let at_least_one_notifier_due_for_reminder = notifiers
-                        .iter()
-                        .any(|n| n.state().has_due_reminder(ctx.now.instant));
+    if time_of_startup_from_low.instant.elapsed() >= settings.monitor.max_allowed_startup_time {
+        // Startup succeeded, can notify success
+        notify::send_to_all(
+            notifiers,
+            settings,
+            ctx,
+            notify::MessageType::StartupSuccess,
+        );
+        ctx.startup_succeeded = true;
+    }
+}
 
-                    if at_least_one_notifier_due_for_reminder {
-                        notify::send_to_all(
-                            &mut notifiers,
-                            &settings,
-                            &ctx,
-                            notify::MessageType::Reminder,
-                        );
-                    }
-                }
+fn handle_high_reading(
+    notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
+    ctx: &mut context::Context,
+    settings: &settings::Settings,
+    reading_changed: bool,
+) {
+    let is_first_iteration = ctx.loop_iteration == 0;
+    if reading_changed || is_first_iteration {
+        if settings.debug {
+            logging::tsprintln!(settings.disable_timestamps, "-- NEW HIGH --");
+        }
 
-                end_loop(&mut ctx, settings.monitor.loop_interval);
-                continue;
-            }
+        if let Some(t) = ctx.time_of_startup_from_low
+            && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
+        {
+            // We went high again before startup duration elapsed, this is a startup failure
+            notify::send_to_all(notifiers, settings, ctx, notify::MessageType::StartupFailed);
+            return;
+        }
+
+        // We just randomly went HIGH for no reason, this is an alert
+        notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Alert);
+    } else {
+        // We have been HIGH for a while, it may be time for a reminder
+        let at_least_one_notifier_due_for_reminder = notifiers
+            .iter()
+            .any(|n| n.state().has_due_reminder(ctx.now.instant));
+
+        if at_least_one_notifier_due_for_reminder {
+            notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
         }
     }
 }
