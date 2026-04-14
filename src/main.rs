@@ -292,12 +292,22 @@ fn handle_low_reading(
 
     if time_of_startup_from_low.instant.elapsed() >= settings.monitor.max_allowed_startup_time {
         // Startup succeeded, can notify success
-        notify::send_to_all(
+        let result = notify::send_to_all(
             notifiers,
             settings,
             ctx,
             notify::MessageType::StartupSuccess,
         );
+
+        if result.success != result.total {
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Failed to send some startup success notifications: {}/{} succeeded",
+                result.success,
+                result.total
+            );
+        }
+
         ctx.startup_succeeded = true;
     }
 }
@@ -318,12 +328,30 @@ fn handle_high_reading(
             && t.instant.elapsed() < settings.monitor.max_allowed_startup_time
         {
             // We went high again before startup duration elapsed, this is a startup failure
-            notify::send_to_all(notifiers, settings, ctx, notify::MessageType::StartupFailed);
+            let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::StartupFailed);
+
+            if result.success != result.total {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Failed to send some startup failure notifications: {}/{} succeeded",
+                    result.success,
+                    result.total
+                );
+            }
             return;
         }
 
         // We just randomly went HIGH for no reason, this is an alert
-        notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Alert);
+        let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Alert);
+
+        if result.success != result.total {
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Failed to send some alert notifications: {}/{} succeeded",
+                result.success,
+                result.total
+            );
+        }
     } else {
         // We have been HIGH for a while, it may be time for a reminder
         let at_least_one_notifier_due_for_reminder = notifiers
@@ -331,7 +359,16 @@ fn handle_high_reading(
             .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
         if at_least_one_notifier_due_for_reminder {
-            notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
+            let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
+
+            if result.success != result.total {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Failed to send some reminder notifications: {}/{} succeeded",
+                    result.success,
+                    result.total
+                );
+            }
         }
     }
 }

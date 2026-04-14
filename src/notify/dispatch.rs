@@ -141,6 +141,26 @@ pub fn send_retries(
             previous_failed_send.message_type,
         );
 
+        match &result {
+            super::SendResult::Success(_) => {
+                logging::tsprintln!(
+                    settings.disable_timestamps,
+                    "Retry succeeded for notifier {} (message type: {:?})",
+                    n.name(),
+                    previous_failed_send.message_type
+                );
+            }
+            super::SendResult::Failure(_) => {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Retry failed for notifier {} (message type: {:?})",
+                    n.name(),
+                    previous_failed_send.message_type
+                );
+            }
+            super::SendResult::TryAgainLater => {}
+        }
+
         let _ = apply_send_result(
             n,
             &previous_failed_send.ctx,
@@ -169,8 +189,8 @@ fn apply_send_result(
     message_type: super::MessageType,
     result: super::SendResult,
 ) -> super::SendResult {
-    match result {
-        super::SendResult::Success(output) => {
+    match &result {
+        super::SendResult::Success(_) => {
             match &message_type {
                 super::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
@@ -190,15 +210,16 @@ fn apply_send_result(
 
             // Reset failure state
             n.state_mut().retry_count = 0;
-            super::SendResult::Success(output)
         }
-        super::SendResult::Failure(output) => {
+        super::SendResult::Failure(_) => {
             n.state_mut().on_failure(ctx, &message_type);
             n.state_mut().bump_time_of_next_retry();
-            super::SendResult::Failure(output)
         }
-        super::SendResult::TryAgainLater => super::SendResult::TryAgainLater,
-    }
+        super::SendResult::TryAgainLater => {}
+    };
+
+    // Pass through
+    result
 }
 
 #[derive(Default)]
