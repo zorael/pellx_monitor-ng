@@ -20,7 +20,7 @@ pub struct Notifier<B: backend::Backend> {
 impl<B: backend::Backend> Notifier<B> {
     pub fn new(backend: B, dry_run: bool) -> Self {
         Self {
-            state: NotifierState::new(),
+            state: NotifierState::default(),
             backend,
             dry_run,
         }
@@ -121,7 +121,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct NotifierState {
     pub previous_failed_send: Option<FailedSendAttempt>,
     pub time_of_next_reminder: Option<time::Instant>,
@@ -131,16 +131,6 @@ pub struct NotifierState {
 }
 
 impl NotifierState {
-    pub fn new() -> Self {
-        Self {
-            previous_failed_send: None,
-            time_of_next_reminder: None,
-            time_of_next_retry: None,
-            reminder_count: 0,
-            retry_count: 0,
-        }
-    }
-
     pub fn reset(&mut self) {
         self.time_of_next_reminder = None;
         self.time_of_next_retry = None;

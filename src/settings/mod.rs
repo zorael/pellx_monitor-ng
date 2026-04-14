@@ -14,7 +14,6 @@ use crate::defaults;
 use crate::logging;
 use crate::source;
 
-#[derive(Debug, Clone)]
 pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
@@ -124,7 +123,6 @@ impl Default for Settings {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct MonitorSettings {
     pub source: source::ChoiceOfInputSource,
     pub loop_interval: time::Duration,
@@ -165,7 +163,6 @@ impl MonitorSettings {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct GpioSettings {
     pub pin: u8,
 }

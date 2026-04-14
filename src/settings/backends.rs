@@ -1,6 +1,6 @@
 use crate::config;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default)]
 pub struct SlackSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
@@ -40,7 +40,7 @@ impl SlackSettings {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default)]
 pub struct BatsignSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
@@ -80,7 +80,7 @@ impl BatsignSettings {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default)]
 pub struct CommandSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,
@@ -120,7 +120,6 @@ impl CommandSettings {
     }
 }
 
-#[derive(Debug, Clone)]
 pub struct PrintlnSettings {
     pub strings: super::MessageStrings,
     pub enabled: bool,

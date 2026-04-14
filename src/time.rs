@@ -1,6 +1,6 @@
 use std::time;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct Timestamp {
     pub instant: time::Instant,
     pub wall: chrono::DateTime<chrono::Local>,

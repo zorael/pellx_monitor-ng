@@ -1,7 +1,7 @@
 use crate::source;
 use crate::time;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Context {
     pub loop_iteration: u64,
     pub went_low_at: Option<time::Timestamp>,

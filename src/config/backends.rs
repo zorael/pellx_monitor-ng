@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PrintlnConfig {
     pub strings: Option<super::MessageStrings>,
     pub enabled: Option<bool>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SlackConfig {
     pub strings: Option<super::MessageStrings>,
@@ -16,7 +16,7 @@ pub struct SlackConfig {
     pub show_response: Option<bool>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BatsignConfig {
     pub strings: Option<super::MessageStrings>,
@@ -25,7 +25,7 @@ pub struct BatsignConfig {
     pub show_response: Option<bool>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CommandConfig {
     pub strings: Option<super::MessageStrings>,

@@ -15,9 +15,8 @@ pub trait InputSource {
     fn read(&mut self) -> Reading;
 }
 
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
+#[derive(Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
 pub enum ChoiceOfInputSource {
-    #[allow(unused)]
     #[default]
     Gpio,
     Dummy,

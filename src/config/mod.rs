@@ -10,7 +10,7 @@ use std::time;
 use crate::settings;
 use crate::source;
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub monitor: MonitorConfig,
@@ -60,7 +60,7 @@ impl From<&settings::Settings> for Config {
     }
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MonitorConfig {
     pub source: source::ChoiceOfInputSource,
@@ -78,7 +78,7 @@ pub struct MonitorConfig {
     pub reminder_interval: Option<time::Duration>,
 }
 
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct GpioConfig {
     pub pin: Option<u8>,

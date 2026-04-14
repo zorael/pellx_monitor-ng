@@ -10,12 +10,18 @@ pub fn send_to_all(
     ctx: &context::Context,
     message_type: super::MessageType,
 ) -> NotificationResult {
+    const RATE_LIMIT_DELAY: time::Duration = time::Duration::from_millis(300);
+
     let mut result = NotificationResult {
         total: notifiers.len(),
         ..Default::default()
     };
 
     for n in notifiers {
+        if n.id() > 0 {
+            // Rate limit to avoid overwhelming backends
+            std::thread::sleep(RATE_LIMIT_DELAY);
+        }
         match send_to_one(n, ctx, message_type) {
             super::SendResult::Success(output) => {
                 if let Some(output) = output {
