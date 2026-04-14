@@ -14,7 +14,7 @@ pub struct Cli {
     )]
     pub source: Option<source::ChoiceOfInputSource>,
 
-    #[arg(long)]
+    #[arg(long, short = 'c', value_name = "path")]
     pub config: Option<path::PathBuf>,
 
     #[arg(long)]
