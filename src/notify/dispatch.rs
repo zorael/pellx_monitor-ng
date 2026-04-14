@@ -174,7 +174,7 @@ fn apply_send_result(
             match &message_type {
                 super::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
-                    n.state_mut().reset();
+                    n.state_mut().on_startup_success();
                 }
                 super::MessageType::Reminder => {
                     n.state_mut().on_reminder_success();

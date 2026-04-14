@@ -135,7 +135,8 @@ pub struct NotifierState {
 }
 
 impl NotifierState {
-    pub fn reset(&mut self) {
+    pub fn on_startup_success(&mut self) {
+        self.previous_failed_send = None;
         self.time_of_next_reminder = None;
         self.time_of_next_retry = None;
         self.reminder_count = 0;
@@ -143,6 +144,7 @@ impl NotifierState {
     }
 
     pub fn on_reminder_success(&mut self) {
+        self.previous_failed_send = None;
         self.time_of_next_retry = None;
         self.reminder_count += 1;
         self.retry_count = 0;
