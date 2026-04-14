@@ -48,16 +48,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_display(ctx, &MessageType::Alert);
+            let message = self.backend.compose_display(ctx, MessageType::Alert);
 
             println!("DRY RUN: send_alert");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose(ctx, &MessageType::Alert);
+        let message = self.backend.compose(ctx, MessageType::Alert);
 
-        match self.backend.emit(ctx, &message, &MessageType::Alert) {
+        match self.backend.emit(ctx, &message, MessageType::Alert) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -65,16 +65,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_display(ctx, &MessageType::Reminder);
+            let message = self.backend.compose_display(ctx, MessageType::Reminder);
 
             println!("DRY RUN: send_reminder");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose(ctx, &MessageType::Reminder);
+        let message = self.backend.compose(ctx, MessageType::Reminder);
 
-        match self.backend.emit(ctx, &message, &MessageType::Reminder) {
+        match self.backend.emit(ctx, &message, MessageType::Reminder) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -84,19 +84,16 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         if self.dry_run {
             let message = self
                 .backend
-                .compose_display(ctx, &MessageType::StartupFailed);
+                .compose_display(ctx, MessageType::StartupFailed);
 
             println!("DRY RUN: send_startup_failed");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose(ctx, &MessageType::StartupFailed);
+        let message = self.backend.compose(ctx, MessageType::StartupFailed);
 
-        match self
-            .backend
-            .emit(ctx, &message, &MessageType::StartupFailed)
-        {
+        match self.backend.emit(ctx, &message, MessageType::StartupFailed) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -106,18 +103,18 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         if self.dry_run {
             let message = self
                 .backend
-                .compose_display(ctx, &MessageType::StartupSuccess);
+                .compose_display(ctx, MessageType::StartupSuccess);
 
             println!("DRY RUN: send_startup_success");
             println!("Message:\n{message}");
             return SendResult::Success(None);
         }
 
-        let message = self.backend.compose(ctx, &MessageType::StartupSuccess);
+        let message = self.backend.compose(ctx, MessageType::StartupSuccess);
 
         match self
             .backend
-            .emit(ctx, &message, &MessageType::StartupSuccess)
+            .emit(ctx, &message, MessageType::StartupSuccess)
         {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
@@ -154,7 +151,7 @@ impl NotifierState {
         self.retry_count = 0;
     }
 
-    pub fn on_failure(&mut self, ctx: &context::Context, message_type: &MessageType) {
+    pub fn on_failure(&mut self, ctx: &context::Context, message_type: MessageType) {
         let failed_send = FailedSendAttempt::new(message_type, ctx);
         self.previous_failed_send = Some(failed_send);
     }
@@ -166,10 +163,8 @@ impl NotifierState {
             0 => 3,
             1 => 6,
             2 => 12,
-            3 => 24,
-            4 => 24,
-            5 => 48,
-            6 => 48,
+            3 | 4 => 24,
+            5 | 6 => 48,
             7 => 96,
             _ => 168,
         };
@@ -236,9 +231,9 @@ pub struct FailedSendAttempt {
 }
 
 impl FailedSendAttempt {
-    pub fn new(message_type: &MessageType, ctx: &context::Context) -> Self {
+    pub fn new(message_type: MessageType, ctx: &context::Context) -> Self {
         Self {
-            message_type: *message_type,
+            message_type,
             ctx: ctx.clone(),
         }
     }

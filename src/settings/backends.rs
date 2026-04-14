@@ -145,6 +145,8 @@ impl PrintlnSettings {
         }
     }
 
+    #[allow(clippy::unused_self)]
+    #[allow(clippy::unnecessary_wraps)]
     pub fn sanity_check(&self) -> Result<(), String> {
         Ok(())
     }

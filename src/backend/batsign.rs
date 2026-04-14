@@ -21,7 +21,7 @@ impl BatsignBackend {
         show_response: bool,
         strings: settings::MessageStrings,
     ) -> Self {
-        let name = format!("batsign-{}", id);
+        let name = format!("batsign-{id}");
 
         Self {
             id,
@@ -55,7 +55,7 @@ impl super::Backend for BatsignBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        _message_type: &notify::MessageType,
+        _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
         let body = format!("Subject: {message}");
 

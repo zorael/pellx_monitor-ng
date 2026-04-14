@@ -10,8 +10,7 @@ pub struct PrintlnBackend {
 
 impl PrintlnBackend {
     pub fn new(id: usize, strings: settings::MessageStrings) -> Self {
-        let name = format!("println-{}", id);
-
+        let name = format!("println-{id}");
         Self { id, name, strings }
     }
 }
@@ -33,10 +32,12 @@ impl super::Backend for PrintlnBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        message_type: &notify::MessageType,
+        message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
-        println!("{message_type:?}");
+        println!("[println] emit: {message_type:?}");
+        println!("---");
         println!("{message}");
+        println!("---");
         Ok(None)
     }
 }

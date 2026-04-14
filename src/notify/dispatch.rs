@@ -189,7 +189,7 @@ fn apply_send_result(
 ) -> super::SendResult {
     match &result {
         super::SendResult::Success(_) => {
-            match &message_type {
+            match message_type {
                 super::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
                     n.state_mut().on_startup_success();
@@ -210,11 +210,11 @@ fn apply_send_result(
             n.state_mut().retry_count = 0;
         }
         super::SendResult::Failure(_) => {
-            n.state_mut().on_failure(ctx, &message_type);
+            n.state_mut().on_failure(ctx, message_type);
             n.state_mut().bump_time_of_next_retry();
         }
         super::SendResult::TryAgainLater => {}
-    };
+    }
 
     // Pass through
     result

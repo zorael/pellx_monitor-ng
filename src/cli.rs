@@ -4,6 +4,7 @@ use std::path;
 use crate::source;
 
 #[derive(Parser)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Cli {
     #[arg(
         long,

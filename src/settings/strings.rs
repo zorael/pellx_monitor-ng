@@ -24,7 +24,7 @@ impl Default for MessageStrings {
             startup_failed_body: "It tried to start up but failed at {fuzzy_then}.".to_string(),
             startup_success_header: "PellX burner startup succeeded".to_string(),
             startup_success_body: "It successfully started up at {fuzzy_then}.".to_string(),
-            footer: "".to_string(),
+            footer: String::new(),
         }
     }
 }
@@ -32,38 +32,39 @@ impl Default for MessageStrings {
 impl MessageStrings {
     pub fn apply_config(&mut self, config: &config::MessageStrings) {
         if let Some(alert_header) = &config.alert_header {
-            self.alert_header = alert_header.clone();
+            self.alert_header.clone_from(alert_header);
         }
 
         if let Some(alert_body) = &config.alert_body {
-            self.alert_body = alert_body.clone();
+            self.alert_body.clone_from(alert_body);
         }
 
         if let Some(reminder_header) = &config.reminder_header {
-            self.reminder_header = reminder_header.clone();
+            self.reminder_header.clone_from(reminder_header);
         }
 
         if let Some(reminder_body) = &config.reminder_body {
-            self.reminder_body = reminder_body.clone();
+            self.reminder_body.clone_from(reminder_body);
         }
 
         if let Some(startup_failed_header) = &config.startup_failed_header {
-            self.startup_failed_header = startup_failed_header.clone();
+            self.startup_failed_header.clone_from(startup_failed_header);
         }
 
         if let Some(startup_failed_body) = &config.startup_failed_body {
-            self.startup_failed_body = startup_failed_body.clone();
+            self.startup_failed_body.clone_from(startup_failed_body);
         }
 
         if let Some(startup_success_header) = &config.startup_success_header {
-            self.startup_success_header = startup_success_header.clone();
+            self.startup_success_header
+                .clone_from(startup_success_header);
         }
 
         if let Some(startup_success_body) = &config.startup_success_body {
-            self.startup_success_body = startup_success_body.clone();
+            self.startup_success_body.clone_from(startup_success_body);
         }
         if let Some(footer) = &config.footer {
-            self.footer = footer.clone();
+            self.footer.clone_from(footer);
         }
     }
 }

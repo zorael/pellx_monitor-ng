@@ -113,7 +113,7 @@ fn main() -> process::ExitCode {
 
     let notifiers = build_notifiers(&settings);
 
-    run_loop(notifiers, source, settings)
+    run_loop(notifiers, source, &settings)
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
@@ -212,7 +212,7 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
 fn run_loop(
     mut notifiers: Vec<Box<dyn notify::StatefulNotifier>>,
     mut source: Box<dyn source::InputSource>,
-    settings: settings::Settings,
+    settings: &settings::Settings,
 ) -> process::ExitCode {
     let mut ctx = context::Context::new();
 
@@ -224,7 +224,7 @@ fn run_loop(
             .any(|n| n.state().has_due_retry(ctx.now.instant));
 
         if at_least_one_notifier_is_due_for_retry {
-            notify::send_retries(&mut notifiers, &settings, &ctx.now.instant);
+            notify::send_retries(&mut notifiers, settings, &ctx.now.instant);
         }
 
         let reading = source.read();
@@ -256,9 +256,9 @@ fn run_loop(
         }
 
         match reading {
-            source::Reading::Low => handle_low_reading(&mut notifiers, &mut ctx, &settings),
+            source::Reading::Low => handle_low_reading(&mut notifiers, &mut ctx, settings),
             source::Reading::High => {
-                handle_high_reading(&mut notifiers, &mut ctx, &settings, reading_changed)
+                handle_high_reading(&mut notifiers, &mut ctx, settings, reading_changed)
             }
         }
 
@@ -279,18 +279,15 @@ fn handle_low_reading(
     }
 
     // We are low, but we don't know if we have completely started up yet
-    let time_of_startup_from_low = match ctx.time_of_startup_from_low {
-        Some(t) => t,
-        None => {
-            // First loop after going low, can't have started up yet
-            // (provided startup_duration > 0)
-            if settings.debug {
-                logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
-            }
-
-            ctx.time_of_startup_from_low = Some(time::Timestamp::now());
-            return;
+    let Some(time_of_startup_from_low) = ctx.time_of_startup_from_low else {
+        // First loop after going low, can't have started up yet
+        // (provided startup_duration > 0)
+        if settings.debug {
+            logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
         }
+
+        ctx.time_of_startup_from_low = Some(time::Timestamp::now());
+        return;
     };
 
     if time_of_startup_from_low.instant.elapsed() >= settings.monitor.required_time_for_startup {

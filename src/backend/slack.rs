@@ -22,7 +22,7 @@ impl SlackBackend {
         show_response: bool,
         strings: settings::MessageStrings,
     ) -> Self {
-        let name = format!("slack-{}", id);
+        let name = format!("slack-{id}");
 
         Self {
             id,
@@ -34,7 +34,7 @@ impl SlackBackend {
         }
     }
 
-    fn compose_common(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+    fn compose_common(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
             notify::MessageType::Alert => compose::compose_alert_message(ctx, &self.strings),
             notify::MessageType::Reminder => compose::compose_reminder_message(ctx, &self.strings),
@@ -61,16 +61,12 @@ impl super::Backend for SlackBackend {
         &self.strings
     }
 
-    fn compose(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+    fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         let message = self.compose_common(ctx, message_type);
         serde_json::json!({ "text": message }).to_string()
     }
 
-    fn compose_display(
-        &self,
-        ctx: &context::Context,
-        message_type: &notify::MessageType,
-    ) -> String {
+    fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         let message = self.compose_common(ctx, message_type);
         let value = serde_json::json!({ "text": message });
 
@@ -88,7 +84,7 @@ impl super::Backend for SlackBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        _message_type: &notify::MessageType,
+        _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
         let json: serde_json::Value = serde_json::from_str(message).map_err(|e| e.to_string())?;
 

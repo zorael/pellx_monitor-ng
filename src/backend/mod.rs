@@ -20,7 +20,7 @@ pub trait Backend {
     fn name(&self) -> &str;
     fn strings(&self) -> &settings::MessageStrings;
 
-    fn compose(&self, ctx: &context::Context, message_type: &notify::MessageType) -> String {
+    fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
             notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
             notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
@@ -33,11 +33,7 @@ pub trait Backend {
         }
     }
 
-    fn compose_display(
-        &self,
-        ctx: &context::Context,
-        message_type: &notify::MessageType,
-    ) -> String {
+    fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
             notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
             notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
@@ -58,6 +54,6 @@ pub trait Backend {
         &self,
         ctx: &context::Context,
         message: &str,
-        message_type: &notify::MessageType,
+        message_type: notify::MessageType,
     ) -> Result<Option<String>, String>;
 }

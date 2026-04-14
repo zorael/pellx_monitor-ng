@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::path;
 use std::process;
 
@@ -21,7 +22,7 @@ impl CommandBackend {
         show_response: bool,
         strings: settings::MessageStrings,
     ) -> Self {
-        let name = format!("command-{}", id);
+        let name = format!("command-{id}");
 
         Self {
             id,
@@ -50,16 +51,16 @@ impl super::Backend for CommandBackend {
         &self,
         ctx: &context::Context,
         message: &str,
-        message_type: &notify::MessageType,
+        message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
         let command = process::Command::new(&self.command)
             .arg(message)
             .arg(format!("{message_type:?}"))
             .arg(ctx.loop_iteration.to_string())
-            .arg(get_unix_timestamp(&ctx.went_low_at).to_string())
-            .arg(get_unix_timestamp(&ctx.went_high_at).to_string())
-            .arg(get_unix_timestamp(&ctx.time_of_state_change).to_string())
-            .arg(get_unix_timestamp(&ctx.time_of_startup_from_low).to_string())
+            .arg(get_unix_timestamp(ctx.went_low_at.as_ref()).to_string())
+            .arg(get_unix_timestamp(ctx.went_high_at.as_ref()).to_string())
+            .arg(get_unix_timestamp(ctx.time_of_state_change.as_ref()).to_string())
+            .arg(get_unix_timestamp(ctx.time_of_startup_from_low.as_ref()).to_string())
             .output()
             .map_err(|e| e.to_string())?;
 
@@ -69,22 +70,22 @@ impl super::Backend for CommandBackend {
             let stderr = String::from_utf8_lossy(&command.stderr).trim().to_string();
 
             if !stdout.is_empty() {
-                output.push_str(&format!("STDOUT:\n{stdout}\n"));
+                let _ = write!(output, "STDOUT:\n{stdout}\n");
             }
 
             if !stderr.is_empty() {
                 if !output.is_empty() {
                     output.push_str("---\n");
                 }
-                output.push_str(&format!("STDERR:\n{stderr}\n"));
+                let _ = write!(output, "STDERR:\n{stderr}\n");
             }
 
             output = output.trim().to_string();
 
-            if !output.is_empty() {
-                Ok(Some(output))
-            } else {
+            if output.is_empty() {
                 Ok(None)
+            } else {
+                Ok(Some(output))
             }
         } else {
             Ok(None)
@@ -92,7 +93,7 @@ impl super::Backend for CommandBackend {
     }
 }
 
-fn get_unix_timestamp(wall: &Option<time::Timestamp>) -> i64 {
+fn get_unix_timestamp(wall: Option<&time::Timestamp>) -> i64 {
     match wall {
         Some(t) => t.wall.timestamp(),
         None => 0,

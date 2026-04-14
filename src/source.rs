@@ -37,21 +37,20 @@ impl GpioInputSource {
 impl InputSource for GpioInputSource {
     fn init(&mut self) -> Result<(), String> {
         match self.sub_init() {
-            Ok(_) => Ok(()),
+            Ok(()) => Ok(()),
             Err(e) => Err(format!("GPIO error: {e}")),
         }
     }
 
     fn read(&mut self) -> Reading {
-        match &self.pin {
-            Some(pin) => match pin.read() {
+        if let Some(pin) = &self.pin {
+            match pin.read() {
                 gpio::Level::Low => Reading::Low,
                 gpio::Level::High => Reading::High,
-            },
-            None => {
-                eprintln!("Error: GPIO pin not initialized");
-                Reading::Low
             }
+        } else {
+            eprintln!("Error: GPIO pin not initialized");
+            Reading::Low
         }
     }
 }

@@ -15,6 +15,7 @@ use crate::logging;
 use crate::source;
 
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Settings {
     pub monitor: MonitorSettings,
     pub gpio: GpioSettings,
@@ -60,19 +61,19 @@ impl Settings {
         let mut errors = Vec::new();
 
         if let Err(e) = self.slack.sanity_check() {
-            errors.push(format!("Slack backend: {}", e));
+            errors.push(format!("Slack backend: {e}"));
         }
 
         if let Err(e) = self.batsign.sanity_check() {
-            errors.push(format!("Batsign backend: {}", e));
+            errors.push(format!("Batsign backend: {e}"));
         }
 
         if let Err(e) = self.command.sanity_check() {
-            errors.push(format!("Command backend: {}", e));
+            errors.push(format!("Command backend: {e}"));
         }
 
         if let Err(e) = self.println.sanity_check() {
-            errors.push(format!("Println backend: {}", e));
+            errors.push(format!("Println backend: {e}"));
         }
 
         if errors.is_empty() {
