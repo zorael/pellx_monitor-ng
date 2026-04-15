@@ -10,14 +10,14 @@ pub struct Cli {
     #[arg(
         long,
         value_enum,
-        value_name = "some source",
+        value_name = "option",
         ignore_case = true,
         default_value = "dummy"
     )]
     pub source: Option<source::ChoiceOfInputSource>,
 
     /// Specify an alternative configuration file
-    #[arg(long, short = 'c', value_name = "path")]
+    #[arg(long, short = 'c', value_name = "file")]
     pub config: Option<path::PathBuf>,
 
     /// Write configuration to disk
