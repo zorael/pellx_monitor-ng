@@ -191,7 +191,23 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
     let mut notifiers: Vec<Box<dyn notify::StatefulNotifier>> = Vec::new();
     let agent = ureq::Agent::new_with_defaults();
 
-    if settings.slack.enabled {
+    let (slack_enabled, batsign_enabled, command_enabled, println_enabled) = match (
+        settings.slack.enabled,
+        settings.batsign.enabled,
+        settings.command.enabled,
+        settings.println.enabled,
+    ) {
+        (false, false, false, false) if settings.dry_run => {
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Enabling all notifier backends as no backends are configured but --dry-run is enabled."
+            );
+            (true, true, true, true)
+        }
+        other => other,
+    };
+
+    if slack_enabled {
         for (i, url) in settings.slack.urls.iter().enumerate() {
             let backend = backend::SlackBackend::new(
                 i,
@@ -206,7 +222,7 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
         }
     }
 
-    if settings.batsign.enabled {
+    if batsign_enabled {
         for (i, url) in settings.batsign.urls.iter().enumerate() {
             let backend = backend::BatsignBackend::new(
                 i,
@@ -221,7 +237,7 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
         }
     }
 
-    if settings.command.enabled {
+    if command_enabled {
         for (i, command) in settings.command.commands.iter().enumerate() {
             let backend = backend::CommandBackend::new(
                 i,
@@ -234,7 +250,7 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
         }
     }
 
-    if settings.println.enabled {
+    if println_enabled {
         let backend = backend::PrintlnBackend::new(0, settings.println.strings.clone());
         let n = notify::Notifier::new(backend, settings.dry_run);
 
