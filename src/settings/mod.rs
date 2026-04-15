@@ -132,6 +132,7 @@ impl MonitorSettings {
         if let Some(max_allowed_startup_time) = config.required_time_for_startup {
             self.required_time_for_startup = max_allowed_startup_time;
         }
+        self.source = config.source;
     }
 }
 
