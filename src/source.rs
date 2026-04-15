@@ -14,6 +14,7 @@ pub trait InputSource {
 }
 
 #[derive(Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
+#[serde(rename_all = "lowercase")]
 pub enum ChoiceOfInputSource {
     #[default]
     Gpio,
