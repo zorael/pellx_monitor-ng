@@ -11,6 +11,7 @@ mod source;
 mod time;
 
 use clap::Parser;
+use std::env;
 use std::error::Error;
 use std::path;
 use std::process;
@@ -40,23 +41,13 @@ fn main() -> process::ExitCode {
         return process::ExitCode::SUCCESS;
     }
 
-    let config_path = match cli.config.as_deref() {
-        Some(path) if path.exists() => path,
-        Some(path) if cli.save => path, // allow saving to non-existent path
-        Some(path) => {
-            logging::tseprintln!(
-                cli.disable_timestamps,
-                "Config file {} does not exist",
-                path.display()
-            );
-            return process::ExitCode::FAILURE;
-        }
-        None => &path::PathBuf::from(defaults::program_metadata::CONFIG_FILENAME),
+    let config_file = match resolve_config_file(&cli) {
+        Outcome::Success(path) => path,
+        Outcome::EarlyExitCode(code) => return code,
     };
 
-    let config = match load_config_file(config_path) {
+    let config = match load_config_file(&config_file) {
         Ok(config) => config,
-        //Err(_) if !config_path.exists() => None,
         Err(err) => {
             logging::tseprintln!(
                 cli.disable_timestamps,
@@ -103,17 +94,63 @@ fn main() -> process::ExitCode {
     }
 
     if cli.save {
-        return settings.save(config_path);
+        return settings.save(&config_file);
     }
 
     let source = match init_source(&settings) {
-        Ok(source) => source,
-        Err(code) => return code,
+        Outcome::Success(source) => source,
+        Outcome::EarlyExitCode(code) => return code,
     };
 
     let notifiers = build_notifiers(&settings);
 
+    if notifiers.is_empty() {
+        logging::tseprintln!(settings.disable_timestamps, "No notifiers configured!");
+        return process::ExitCode::SUCCESS;
+    }
+
     run_loop(notifiers, source, &settings)
+}
+
+fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
+    match cli.config.as_deref() {
+        Some(path) if path.exists() || cli.save => Outcome::Success(path.to_path_buf()),
+        Some(path) => {
+            logging::tseprintln!(
+                cli.disable_timestamps,
+                "Config file {} does not exist",
+                path.display()
+            );
+            Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+        }
+        None => match &resolve_config_directory() {
+            Ok(path) => {
+                let mut dir = path.clone();
+                dir.push(defaults::program_metadata::CONFIG_FILENAME);
+                Outcome::Success(dir)
+            }
+            Err(err) => {
+                logging::tseprintln!(cli.disable_timestamps, "{err}");
+                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+            }
+        },
+    }
+}
+
+pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
+    if users::get_current_uid() == 0 {
+        return Ok(path::PathBuf::from("/etc").join(defaults::program_metadata::NAME));
+    }
+
+    if let Some(path) = env::var_os("XDG_CONFIG_HOME").map(path::PathBuf::from) {
+        return Ok(path);
+    }
+
+    if let Some(path) = env::var_os("HOME").map(path::PathBuf::from) {
+        return Ok(path.join(".config"));
+    }
+
+    Err("Could not resolve configuration directory.".to_string())
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
@@ -127,9 +164,7 @@ fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, 
     }
 }
 
-fn init_source(
-    settings: &settings::Settings,
-) -> Result<Box<dyn source::InputSource>, process::ExitCode> {
+fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSource>> {
     let mut source: Box<dyn source::InputSource> = match settings.monitor.source {
         source::ChoiceOfInputSource::Gpio => {
             Box::new(source::GpioInputSource::new(settings.gpio.pin))
@@ -141,13 +176,13 @@ fn init_source(
     };
 
     match source.init() {
-        Ok(()) => Ok(source),
+        Ok(()) => Outcome::Success(source),
         Err(err) => {
             logging::tseprintln!(
                 settings.disable_timestamps,
                 "Failed to initialize input source! {err}"
             );
-            Err(process::ExitCode::FAILURE)
+            Outcome::EarlyExitCode(process::ExitCode::FAILURE)
         }
     }
 }
@@ -378,4 +413,9 @@ fn handle_high_reading(
 fn end_loop(ctx: &mut context::Context, interval: std_time::Duration) {
     ctx.loop_iteration += 1;
     thread::sleep(interval);
+}
+
+enum Outcome<T> {
+    Success(T),
+    EarlyExitCode(process::ExitCode),
 }
