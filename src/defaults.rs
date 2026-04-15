@@ -20,5 +20,5 @@ pub mod monitor {
     use std::time;
 
     pub const LOOP_INTERVAL: time::Duration = time::Duration::from_secs(1);
-    pub const REQUIRED_TIME_FOR_STARTUP: time::Duration = time::Duration::from_secs(5);
+    pub const STARTUP_WINDOW: time::Duration = time::Duration::from_secs(5);
 }

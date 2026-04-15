@@ -118,7 +118,7 @@ impl Default for MonitorSettings {
         Self {
             source: source::ChoiceOfInputSource::Gpio,
             loop_interval: defaults::monitor::LOOP_INTERVAL,
-            required_time_for_startup: defaults::monitor::REQUIRED_TIME_FOR_STARTUP,
+            required_time_for_startup: defaults::monitor::STARTUP_WINDOW,
         }
     }
 }
