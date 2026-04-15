@@ -129,9 +129,10 @@ impl MonitorSettings {
             self.loop_interval = loop_interval;
         }
 
-        if let Some(max_allowed_startup_time) = config.required_time_for_startup {
-            self.required_time_for_startup = max_allowed_startup_time;
+        if let Some(required_time_for_startup) = config.required_time_for_startup {
+            self.required_time_for_startup = required_time_for_startup;
         }
+
         self.source = config.source;
     }
 }

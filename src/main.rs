@@ -309,7 +309,7 @@ fn run_loop(
         match reading {
             source::Reading::Low => handle_low_reading(&mut notifiers, &mut ctx, settings),
             source::Reading::High => {
-                handle_high_reading(&mut notifiers, &mut ctx, settings, reading_changed)
+                handle_high_reading(&mut notifiers, &mut ctx, settings, reading_changed);
             }
         }
 

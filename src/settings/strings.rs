@@ -63,6 +63,7 @@ impl MessageStrings {
         if let Some(startup_success_body) = &config.startup_success_body {
             self.startup_success_body.clone_from(startup_success_body);
         }
+
         if let Some(footer) = &config.footer {
             self.footer.clone_from(footer);
         }
