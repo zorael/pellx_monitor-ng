@@ -1,9 +1,9 @@
 [package]
 name = "pellxd"
 version = "0.1.0"
-license = "MIT OR Apache-2.0"
+license = "GPL-2.0-or-later"
 edition = "2024"
-repository = "https://github.com/zorael/pellx_monitor-ng"
+repository = "https://github.com/zorael/pellxd"
 authors = [ "jr" ]
 
 [dependencies]
