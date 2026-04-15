@@ -49,10 +49,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
             let message = self.backend.compose_display(ctx, MessageType::Alert);
-
-            println!("DRY RUN: send_alert");
-            println!("Message:\n{message}");
-            return SendResult::Success(None);
+            return SendResult::Success(Some(message));
         }
 
         let message = self.backend.compose(ctx, MessageType::Alert);
@@ -66,10 +63,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
             let message = self.backend.compose_display(ctx, MessageType::Reminder);
-
-            println!("DRY RUN: send_reminder");
-            println!("Message:\n{message}");
-            return SendResult::Success(None);
+            return SendResult::Success(Some(message));
         }
 
         let message = self.backend.compose(ctx, MessageType::Reminder);
@@ -85,10 +79,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             let message = self
                 .backend
                 .compose_display(ctx, MessageType::StartupFailed);
-
-            println!("DRY RUN: send_startup_failed");
-            println!("Message:\n{message}");
-            return SendResult::Success(None);
+            return SendResult::Success(Some(message));
         }
 
         let message = self.backend.compose(ctx, MessageType::StartupFailed);
@@ -104,10 +95,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
             let message = self
                 .backend
                 .compose_display(ctx, MessageType::StartupSuccess);
-
-            println!("DRY RUN: send_startup_success");
-            println!("Message:\n{message}");
-            return SendResult::Success(None);
+            return SendResult::Success(Some(message));
         }
 
         let message = self.backend.compose(ctx, MessageType::StartupSuccess);

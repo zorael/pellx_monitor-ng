@@ -26,7 +26,7 @@ pub fn send_to_all(
                 if let Some(output) = output {
                     logging::tsprintln!(
                         settings.disable_timestamps,
-                        "Output from notifier {}:\n{output}",
+                        "[{}] success:\n{output}",
                         n.name()
                     );
                 }
@@ -35,7 +35,7 @@ pub fn send_to_all(
             super::SendResult::Failure(output) => {
                 logging::tseprintln!(
                     settings.disable_timestamps,
-                    "Error from notifier {}:\n{output}",
+                    "[{}] FAILURE:\n{output}",
                     n.name()
                 );
                 result.failure += 1;
