@@ -33,4 +33,6 @@ pub mod exit_codes {
     pub const CONFIG_SANITY_CHECK_FAILED: u8 = 15;
     pub const FAILED_TO_SAVE_CONFIG_FILE: u8 = 16;
     pub const NO_NOTIFIERS_CONFIGURED: u8 = 20;
+    pub const FAILED_TO_INITIALIZE_INPUT_SOURCE: u8 = 30;
+    pub const INPUT_SOURCE_SANITY_CHECK_FAILED: u8 = 31;
 }

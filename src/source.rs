@@ -13,6 +13,7 @@ pub enum Reading {
 pub trait InputSource {
     fn init(&mut self) -> Result<(), String>;
     fn read(&mut self) -> Reading;
+    fn sanity_check(&self) -> Result<(), Vec<String>>;
 }
 
 #[derive(Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
@@ -54,6 +55,20 @@ impl InputSource for GpioInputSource {
         } else {
             eprintln!("Error: GPIO pin not initialized");
             Reading::Low
+        }
+    }
+
+    fn sanity_check(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+
+        if self.pin_number > 40 {
+            errors.push(format!("Invalid GPIO pin number: {}", self.pin_number));
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 }
@@ -103,6 +118,24 @@ impl InputSource for DummyInputSource {
             Reading::Low
         } else {
             Reading::High
+        }
+    }
+
+    fn sanity_check(&self) -> Result<(), Vec<String>> {
+        let mut errors = Vec::new();
+
+        if self.modulus == 0 {
+            errors.push("Modulus may not be zero".to_string());
+        }
+
+        if self.threshold > self.modulus {
+            errors.push("Threshold may not be greater than modulus".to_string());
+        }
+
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 }
