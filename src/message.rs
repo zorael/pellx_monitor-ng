@@ -71,44 +71,6 @@ fn compose_common(ctx: &context::Context, header: &str, body: &str, footer: &str
 fn replace_placeholders(body: &str, ctx: &context::Context) -> String {
     let mut out = body.to_string();
 
-    if let Some(went_high_at) = &ctx.went_high_at {
-        out = out.replace(
-            "{went_high_at}",
-            &time::fuzzy_datestamp_of(&went_high_at.wall),
-        );
-    }
-
-    if let Some(went_low_at) = &ctx.went_low_at {
-        out = out.replace(
-            "{went_low_at}",
-            &time::fuzzy_datestamp_of(&went_low_at.wall),
-        );
-    }
-
-    if let Some(time_of_state_change) = &ctx.time_of_state_change {
-        out = out.replace(
-            "{time_of_state_change}",
-            &time::fuzzy_datestamp_of(&time_of_state_change.wall),
-        );
-    }
-
-    if let Some(time_of_startup) = &ctx.time_of_startup {
-        out = out.replace(
-            "{time_of_startup}",
-            &time::fuzzy_datestamp_of(&time_of_startup.wall),
-        );
-    }
-
-    let now = chrono::Local::now();
-
-    out = out.replace("{fuzzy_now}", &time::fuzzy_datestamp_of(&now));
-    out = out.replace("{time_now}", &now.format("%H:%M").to_string());
-    out = out.replace("{date_now}", &now.format("%Y-%m-%d").to_string());
-    out = out.replace("{fuzzy_then}", &time::fuzzy_datestamp_of(&ctx.now.wall));
-    out = out.replace("{time_then}", &ctx.now.wall.format("%H:%M").to_string());
-    out = out.replace("{date_then}", &ctx.now.wall.format("%Y-%m-%d").to_string());
-    out = out.replace("{name}", defaults::program_metadata::NAME);
-    out = out.replace("{version}", defaults::program_metadata::VERSION);
 
     if let Some(went_low_at) = &ctx.went_low_at {
         out = out.replace("{fuzzy_low}", &time::fuzzy_datestamp_of(&went_low_at.wall));
@@ -134,6 +96,17 @@ fn replace_placeholders(body: &str, ctx: &context::Context) -> String {
             &time::fuzzy_datestamp_of(&time_of_startup.wall),
         );
     }
+
+    let now = chrono::Local::now();
+
+    out = out.replace("{fuzzy_now}", &time::fuzzy_datestamp_of(&now));
+    out = out.replace("{time_now}", &now.format("%H:%M").to_string());
+    out = out.replace("{date_now}", &now.format("%Y-%m-%d").to_string());
+    out = out.replace("{fuzzy_then}", &time::fuzzy_datestamp_of(&ctx.now.wall));
+    out = out.replace("{time_then}", &ctx.now.wall.format("%H:%M").to_string());
+    out = out.replace("{date_then}", &ctx.now.wall.format("%Y-%m-%d").to_string());
+    out = out.replace("{name}", defaults::program_metadata::NAME);
+    out = out.replace("{version}", defaults::program_metadata::VERSION);
 
     out
 }
