@@ -26,7 +26,7 @@ pub fn send_to_all(
                 if let Some(output) = output {
                     logging::tsprintln!(
                         settings.disable_timestamps,
-                        "[{}] success:\n{output}",
+                        "[{}] push success:\n{output}",
                         n.name()
                     );
                 }
@@ -35,7 +35,7 @@ pub fn send_to_all(
             super::SendResult::Failure(output) => {
                 logging::tseprintln!(
                     settings.disable_timestamps,
-                    "[{}] FAILURE:\n{output}",
+                    "[{}] push FAILURE:\n{output}",
                     n.name()
                 );
                 result.failure += 1;
@@ -143,7 +143,7 @@ pub fn send_retries(
             super::SendResult::Success(_) => {
                 logging::tsprintln!(
                     settings.disable_timestamps,
-                    "Retry succeeded for notifier {} (message type: {:?})",
+                    "[{}] retry succeeded (message type: {:?})",
                     n.name(),
                     previous_failed_send.message_type
                 );
@@ -151,7 +151,7 @@ pub fn send_retries(
             super::SendResult::Failure(_) => {
                 logging::tseprintln!(
                     settings.disable_timestamps,
-                    "Retry failed for notifier {} (message type: {:?})",
+                    "[{}] retry FAILED (message type: {:?})",
                     n.name(),
                     previous_failed_send.message_type
                 );
