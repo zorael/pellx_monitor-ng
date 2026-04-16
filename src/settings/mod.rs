@@ -5,13 +5,11 @@ pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSetti
 pub use strings::MessageStrings;
 
 use std::path;
-use std::process;
 use std::time;
 
 use crate::cli;
 use crate::config;
 use crate::defaults;
-use crate::logging;
 use crate::source;
 
 #[derive(Default)]
