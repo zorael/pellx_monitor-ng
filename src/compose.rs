@@ -111,10 +111,7 @@ fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
     out = out.replace("{version}", defaults::program_metadata::VERSION);
 
     if let Some(went_low_at) = &ctx.went_low_at {
-        out = out.replace(
-            "{fuzzy_low}",
-            &time::fuzzy_datestamp_of(&went_low_at.wall),
-        );
+        out = out.replace("{fuzzy_low}", &time::fuzzy_datestamp_of(&went_low_at.wall));
     }
 
     if let Some(went_high_at) = &ctx.went_high_at {
