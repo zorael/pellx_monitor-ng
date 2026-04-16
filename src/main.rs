@@ -106,6 +106,14 @@ fn main() -> process::ExitCode {
 
     if notifiers.is_empty() {
         logging::tseprintln!(settings.disable_timestamps, "No notifiers configured!");
+
+        if !config_file.exists() {
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Pass --save to create a new configuration file.",
+            );
+        }
+
         return process::ExitCode::SUCCESS;
     }
 
