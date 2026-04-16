@@ -71,6 +71,10 @@ fn main() -> process::ExitCode {
     settings.apply_config(config.as_ref());
     settings.apply_cli(&cli);
 
+    if settings.debug {
+        settings.verbose = true;
+    }
+
     match settings.sanity_check() {
         Ok(()) => (),
         Err(errors) => {
