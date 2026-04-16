@@ -1,3 +1,16 @@
+//! Monitor and error-reporter of a `PellX` pellets burner.
+//!
+//! Intended to be run on a Raspberry Pi-equivalent device connected via GPIO
+//! to terminals on the controller board of a `PellX` burner.
+//!
+//! Terminals 1 and 2 are electrically connected when the burner is operating
+//! normally, and the circuit is broken when it is in an error state
+//! (including on power failures).
+//!
+//! A notification is sent when this is detected. These can be sent as Slack
+//! messages, as short emails via Batsign, and/or by invocation of an
+//! external command (like `notify-send`, `wall` or `sendmail`).
+
 mod backend;
 mod cli;
 mod config;
@@ -18,6 +31,7 @@ use std::process;
 use std::thread;
 use std::time as std_time;
 
+/// Prints a banner to the terminal with some information about the program.
 fn print_banner() {
     println!(
         "{} v{} | copyright (c) 2026 {}\n$ git clone {}",
@@ -28,6 +42,7 @@ fn print_banner() {
     );
 }
 
+/// Program entry point.
 fn main() -> process::ExitCode {
     let cli = cli::Cli::parse();
 
@@ -143,6 +158,22 @@ fn main() -> process::ExitCode {
     run_loop(notifiers, source, &settings)
 }
 
+/// Attempts to resolve the path to the configuration file.
+///
+/// A file specified at the command line takes priority. If none was supplied,
+/// attempts to resolve a configuration directory is done, within which a
+/// `pellxd.toml` file is expected.
+///
+/// The configuration directory is derived in `resolve_config_directory`.
+///
+/// # Parameters
+/// - `cli`: The parsed command line arguments.
+///
+/// # Returns
+/// - `Outcome::Success(path::PathBuf)` if the configuration file was
+///   successfully resolved.
+/// - `Outcome::EarlyExitCode(process::ExitCode)` if resolution failed and
+///   the program should exit with the specified shell exit code.
 fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
     match cli.config.as_deref() {
         Some(path) if path.exists() || cli.save => Outcome::Success(path.to_path_buf()),
@@ -195,6 +226,16 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
     }
 }
 
+/// Attempts to resolve the path to a configuration directory.
+///
+/// The environment variable `PELLXD_CONFIG_ROOT` takes priority. If this is
+/// not set and the program is running as root, `/etc/pellxd` is used.
+/// Failing that, the environment variable `XDG_CONFIG_HOME` is used, if set.
+/// If it is not, it finally falls back to `$HOME/.config`.
+///
+/// # Returns
+/// - `Ok(path::PathBuf)` representing the resolved configuration directory.
+/// - `Err(String)` if resolution failed.
 pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
     if let Some(path) = env::var_os("PELLXD_CONFIG_ROOT").map(path::PathBuf::from) {
         return Ok(path);
@@ -215,6 +256,11 @@ pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
     Err("could not determine directory based on UID nor from environment variables".to_string())
 }
 
+/// Attempts to load the configuration file at the specified path.
+///
+/// # Returns
+/// - `Ok(Option<config::Config>)` representing the loaded configuration.
+/// - `Err(confy::ConfyError)` if loading failed.
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
     if !config_path.exists() {
         return Ok(None);
@@ -226,6 +272,17 @@ fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, 
     }
 }
 
+/// Initializes the input source specified in the passed settings.
+///
+/// # Parameters
+/// - `settings`: The program settings from which to derive which input source
+///   to initialize (and with what arguments).
+///
+/// # Returns
+/// - `Outcome::Success(Box<dyn source::InputSource>)` if the input source
+///   was successfully initialized.
+/// - `Outcome::EarlyExitCode(process::ExitCode)` if initialization failed and
+///   the program should exit with the specified shell exit code.
 fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSource>> {
     let mut source: Box<dyn source::InputSource> = match settings.monitor.source {
         source::ChoiceOfInputSource::Gpio => {
@@ -267,6 +324,15 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
     }
 }
 
+/// Constructs notifiers based on the passed settings.
+///
+/// # Parameters
+/// - `settings`: The program settings from which to derive which notifiers to
+///   construct (and with what arguments).
+///
+/// # Returns
+/// A vector of boxed `dyn notify::StatefulNotifier`s, to be used as notifiers
+/// for pushing notifications in the main loop.
 fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::StatefulNotifier>> {
     let mut notifiers: Vec<Box<dyn notify::StatefulNotifier>> = Vec::new();
     let agent = ureq::Agent::new_with_defaults();
@@ -340,6 +406,15 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
     notifiers
 }
 
+/// Main loop of the program.
+///
+/// Continuously polls the input source for changes and sends notifications
+/// through the provided notifiers on changes. Does not return.
+///
+/// # Parameters
+/// - `notifiers`: A vector of notifiers to send notifications through.
+/// - `source`: The input source to poll for values.
+/// - `settings`: The program settings.
 fn run_loop(
     mut notifiers: Vec<Box<dyn notify::StatefulNotifier>>,
     mut source: Box<dyn source::InputSource>,
@@ -397,6 +472,14 @@ fn run_loop(
     }
 }
 
+/// Helper function to handle a `LOW` reading from the input source.
+///
+/// This is called as part of the main loop, when `source::Reading::Low` is read.
+///
+/// # Parameters
+/// - `notifiers`: The notifiers to send potential notifications through.
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `settings`: The program settings.
 fn handle_low_reading(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &mut context::Context,
@@ -453,6 +536,16 @@ fn handle_low_reading(
     }
 }
 
+/// Helper function to handle a `HIGH` reading from the input source.
+///
+/// This is called as part of the main loop, when `source::Reading::High` is read.
+///
+/// # Parameters
+/// - `notifiers`: The notifiers to send potential notifications through.
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `settings`: The program settings.
+/// - `reading_changed`: A boolean indicating if the value read from the
+///   input source changed since the last loop iteration.
 fn handle_high_reading(
     notifiers: &mut Vec<Box<dyn notify::StatefulNotifier>>,
     ctx: &mut context::Context,
@@ -528,12 +621,28 @@ fn handle_high_reading(
     }
 }
 
+/// Helper function to end a loop iteration.
+///
+/// This is called at the end of each iteration of the main loop.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `interval`: The duration to sleep for as part of the end of the loop.
 fn end_loop(ctx: &mut context::Context, interval: std_time::Duration) {
     ctx.loop_iteration += 1;
     thread::sleep(interval);
 }
 
+/// Helper enum to represent the outcome of an operation *or* an early exit
+/// shell code.
+///
+/// This is used in functions that would normally return `Result<T, process::ExitCode>`
+/// but where semantically the error case is not necessarily an error.
 enum Outcome<T> {
+    /// The operation succeeded with the embedded value of some type `T`.
     Success(T),
+
+    /// The operation resulted in a condition where the calling function should
+    /// exit early with the embedded shell exit code.
     EarlyExitCode(process::ExitCode),
 }

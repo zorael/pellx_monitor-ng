@@ -1,8 +1,11 @@
+//! Struct for defining CLI parameters.
+
 use clap::Parser;
 use std::path;
 
 use crate::source;
 
+// Don't document the struct itself or the string will show up in the --help listing.
 #[derive(Parser)]
 #[allow(clippy::struct_excessive_bools)]
 pub struct Cli {

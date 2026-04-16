@@ -1,3 +1,6 @@
+//! Default values for various program parameters and settings.
+
+/// Strings related to the program itself.
 pub mod program_metadata {
     pub const NAME: &str = env!("CARGO_PKG_NAME");
     pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -7,22 +10,25 @@ pub mod program_metadata {
     pub const LICENSE: &str = env!("CARGO_PKG_LICENSE");
 }
 
+/// Default values for the GPIO input source.
 pub mod gpio {
     pub const PIN: u8 = 24;
 }
 
+/// Default values for the dummy input source.
 pub mod dummy {
     pub const MODULUS: u32 = 30;
     pub const THRESHOLD: u32 = 15;
 }
 
+/// Default timings.
 pub mod monitor {
     use std::time;
-
     pub const LOOP_INTERVAL: time::Duration = time::Duration::from_secs(1);
     pub const STARTUP_WINDOW: time::Duration = time::Duration::from_secs(480); // 8 minutes
 }
 
+/// Shell exit codes for various failure scenarios.
 #[allow(unused_variables)]
 pub mod exit_codes {
     pub const FAILED_TO_LOAD_CONFIG_FILE: u8 = 10;

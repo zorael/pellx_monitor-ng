@@ -1,3 +1,5 @@
+//! User-configurable strings used in composing notifications.
+
 use crate::config;
 
 #[derive(Clone)]

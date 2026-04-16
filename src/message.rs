@@ -1,8 +1,26 @@
+//! Message composition utilities.
+
 use crate::context;
 use crate::defaults;
 use crate::settings;
 use crate::time;
 
+/// Composes a message for an alert notification.
+///
+/// The message is constructed from the provided `context::Context` of the main
+/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
+///
+/// Merely leverages `compose_common`.
+///
+/// Some placeholders are supported in the message strings, which will be
+/// replaced with values from the context. See `replace_placeholders`.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `strings`: The message strings from the backend of the calling notifier.
+///
+/// # Returns
+/// A composed alert message, ready to be sent by a notifier.
 pub fn compose_alert_message(ctx: &context::Context, strings: &settings::MessageStrings) -> String {
     compose_common(
         ctx,
@@ -12,6 +30,22 @@ pub fn compose_alert_message(ctx: &context::Context, strings: &settings::Message
     )
 }
 
+/// Composes a message for a reminder notification.
+///
+/// The message is constructed from the provided `context::Context` of the main
+/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
+///
+/// Merely leverages `compose_common`.
+///
+/// Some placeholders are supported in the message strings, which will be
+/// replaced with values from the context. See `replace_placeholders`.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `strings`: The message strings from the backend of the calling notifier.
+///
+/// # Returns
+/// A composed reminder message, ready to be sent by a notifier.
 pub fn compose_reminder_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -24,6 +58,22 @@ pub fn compose_reminder_message(
     )
 }
 
+/// Composes a message for a notification upon failure to start up properly.
+///
+/// The message is constructed from the provided `context::Context` of the main
+/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
+///
+/// Merely leverages `compose_common`.
+///
+/// Some placeholders are supported in the message strings, which will be
+/// replaced with values from the context. See `replace_placeholders`.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `strings`: The message strings from the backend of the calling notifier.
+///
+/// # Returns
+/// A composed startup failed message, ready to be sent by a notifier.
 pub fn compose_startup_failed_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -36,6 +86,22 @@ pub fn compose_startup_failed_message(
     )
 }
 
+/// Composes a message for a notification upon successful startup.
+///
+/// The message is constructed from the provided `context::Context` of the main
+/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
+///
+/// Merely leverages `compose_common`.
+///
+/// Some placeholders are supported in the message strings, which will be
+/// replaced with values from the context. See `replace_placeholders`.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `strings`: The message strings from the backend of the calling notifier.
+///
+/// # Returns
+/// A composed startup success message, ready to be sent by a notifier.
 pub fn compose_startup_success_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -48,6 +114,23 @@ pub fn compose_startup_success_message(
     )
 }
 
+/// Common routine for composing a message for a notification.
+///
+/// This does not have a `settings::MessageStrings` parameter, and instead
+/// the caller must provide the relevant header, body and footer strings directly.
+/// Having it in a separate function like this greatly deduplicates code.
+///
+/// Some placeholders are supported in the message strings, which will be
+/// replaced with values from the context. See `replace_placeholders`.
+///
+/// # Parameters
+/// - `ctx`: The context of the main loop, containing state and timestamps.
+/// - `header`: The header string for the message, which may be empty.
+/// - `body`: The body string for the message, which may be empty.
+/// - `footer`: The footer string for the message, which may be empty.
+///
+/// # Returns
+/// A composed message of unspecified type, ready to be sent by a notifier.
 fn compose_common(ctx: &context::Context, header: &str, body: &str, footer: &str) -> String {
     let mut msg = String::new();
 
@@ -68,9 +151,38 @@ fn compose_common(ctx: &context::Context, header: &str, body: &str, footer: &str
     replace_placeholders(&msg, ctx).trim_end().to_string()
 }
 
+/// Replaces placeholders in a message string with values from the passed context.
+///
+/// The currently supported placeholders are:
+/// - `{fuzzy_now}`: The current time in a human-friendly format that may be
+///   a mixture of date and time, depending how long ago the time was.
+///   In the case of the current time, this will always be a timestamp without date.
+/// - `{time_now}`: The current time in `HH:MM` format.
+/// - `{date_now}`: The current date in `YYYY-MM-DD` format.
+/// - `{fuzzy_then}`: The time of the context's `now` field. This is generally
+///   the same as the current time, but may be different if the context is
+///   from a retry of a previously failed send.
+/// - `{time_then}`: The time of the context's `now` field, in `HH:MM` format.
+/// - `{date_then}`: The date of the context's `now` field, in `YYYY-MM-DD` format.
+/// - `{name}`: The name of the program.
+/// - `{version}`: The version of the program.
+/// - `{fuzzy_low}`: The time of the most recent transition to
+///   `source::Reading::Low` in a human-friendly format.
+/// - `{fuzzy_high}`: The time of the most recent transition to
+///   `source::Reading::High` in a human-friendly format.
+/// - `{fuzzy_state_change}`: The time of the most recent transition to either
+///   `source::Reading::Low` or `source::Reading::High` in a human-friendly format.
+///
+/// # Parameters
+/// - `body`: The message string potentially containing placeholders to replace.
+/// - `ctx`: The context of the main loop, containing state and timestamps to
+///   replace the placeholders with.
+///
+/// # Returns
+/// The message string with placeholders replaced with values from the context
+/// and/or with such based on the current time and date.
 fn replace_placeholders(body: &str, ctx: &context::Context) -> String {
     let mut out = body.to_string();
-
 
     if let Some(went_low_at) = &ctx.went_low_at {
         out = out.replace("{fuzzy_low}", &time::fuzzy_datestamp_of(&went_low_at.wall));
@@ -111,6 +223,20 @@ fn replace_placeholders(body: &str, ctx: &context::Context) -> String {
     out
 }
 
+/// Unescapes a string, replacing some escape sequences with their literal characters.
+///
+/// The currently supported escape sequences are:
+/// - `\\`: A literal backslash (`\`).
+/// - `\"`: A literal double quote (`"`).
+/// - `\n`: A newline character.
+/// - `\r`: A carriage return character.
+/// - `\t`: A tab character.
+/// - `\{`: A literal opening curly brace (`{`).
+/// - `\}`: A literal closing curly brace (`}`).
+///
+/// With this it's possible to have strings in the configuration file that
+/// contain `\n` without having to actually insert a (for example) newline
+/// with the `"""` syntax.
 fn unescape(input: &str) -> String {
     input
         .replace("\\\\", "\\")
