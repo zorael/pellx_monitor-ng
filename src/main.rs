@@ -163,6 +163,10 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
 }
 
 pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
+    if let Some(path) = env::var_os("PELLXD_CONFIG_ROOT").map(path::PathBuf::from) {
+        return Ok(path);
+    }
+
     if users::get_current_uid() == 0 {
         return Ok(path::PathBuf::from("/etc").join(defaults::program_metadata::NAME));
     }
