@@ -109,6 +109,35 @@ fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
     out = out.replace("{date_then}", &ctx.now.wall.format("%Y-%m-%d").to_string());
     out = out.replace("{name}", defaults::program_metadata::NAME);
     out = out.replace("{version}", defaults::program_metadata::VERSION);
+
+    if let Some(went_low_at) = &ctx.went_low_at {
+        out = out.replace(
+            "{fuzzy_low}",
+            &time::fuzzy_datestamp_of(&went_low_at.wall),
+        );
+    }
+
+    if let Some(went_high_at) = &ctx.went_high_at {
+        out = out.replace(
+            "{fuzzy_high}",
+            &time::fuzzy_datestamp_of(&went_high_at.wall),
+        );
+    }
+
+    if let Some(time_of_state_change) = &ctx.time_of_state_change {
+        out = out.replace(
+            "{fuzzy_state_change}",
+            &time::fuzzy_datestamp_of(&time_of_state_change.wall),
+        );
+    }
+
+    if let Some(time_of_startup) = &ctx.time_of_startup {
+        out = out.replace(
+            "{fuzzy_startup}",
+            &time::fuzzy_datestamp_of(&time_of_startup.wall),
+        );
+    }
+
     out
 }
 
