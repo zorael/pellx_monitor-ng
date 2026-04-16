@@ -48,17 +48,17 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_alert(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_display(ctx, MessageType::Alert);
-            return SendResult::Success(Some(message));
+            let body = self.backend.compose_display(ctx, MessageType::Alert);
+            return SendResult::Success(Some(body));
         }
 
-        let message = self.backend.compose(ctx, MessageType::Alert);
+        let body = self.backend.compose(ctx, MessageType::Alert);
 
-        if message.is_empty() {
+        if body.is_empty() {
             return SendResult::Success(None);
         }
 
-        match self.backend.emit(ctx, &message, MessageType::Alert) {
+        match self.backend.emit(ctx, &body, MessageType::Alert) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -66,17 +66,17 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_reminder(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self.backend.compose_display(ctx, MessageType::Reminder);
-            return SendResult::Success(Some(message));
+            let body = self.backend.compose_display(ctx, MessageType::Reminder);
+            return SendResult::Success(Some(body));
         }
 
-        let message = self.backend.compose(ctx, MessageType::Reminder);
+        let body = self.backend.compose(ctx, MessageType::Reminder);
 
-        if message.is_empty() {
+        if body.is_empty() {
             return SendResult::Success(None);
         }
 
-        match self.backend.emit(ctx, &message, MessageType::Reminder) {
+        match self.backend.emit(ctx, &body, MessageType::Reminder) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -84,19 +84,19 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_startup_failed(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self
+            let body = self
                 .backend
                 .compose_display(ctx, MessageType::StartupFailed);
-            return SendResult::Success(Some(message));
+            return SendResult::Success(Some(body));
         }
 
-        let message = self.backend.compose(ctx, MessageType::StartupFailed);
+        let body = self.backend.compose(ctx, MessageType::StartupFailed);
 
-        if message.is_empty() {
+        if body.is_empty() {
             return SendResult::Success(None);
         }
 
-        match self.backend.emit(ctx, &message, MessageType::StartupFailed) {
+        match self.backend.emit(ctx, &body, MessageType::StartupFailed) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }
@@ -104,22 +104,19 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
     fn send_startup_success(&mut self, ctx: &context::Context) -> SendResult {
         if self.dry_run {
-            let message = self
+            let body = self
                 .backend
                 .compose_display(ctx, MessageType::StartupSuccess);
-            return SendResult::Success(Some(message));
+            return SendResult::Success(Some(body));
         }
 
-        let message = self.backend.compose(ctx, MessageType::StartupSuccess);
+        let body = self.backend.compose(ctx, MessageType::StartupSuccess);
 
-        if message.is_empty() {
+        if body.is_empty() {
             return SendResult::Success(None);
         }
 
-        match self
-            .backend
-            .emit(ctx, &message, MessageType::StartupSuccess)
-        {
+        match self.backend.emit(ctx, &body, MessageType::StartupSuccess) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
         }

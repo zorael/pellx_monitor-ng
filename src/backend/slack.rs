@@ -1,7 +1,7 @@
 use std::time;
 
-use crate::compose;
 use crate::context;
+use crate::message;
 use crate::notify;
 use crate::settings;
 
@@ -36,13 +36,13 @@ impl SlackBackend {
 
     fn compose_common(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
-            notify::MessageType::Alert => compose::compose_alert_message(ctx, &self.strings),
-            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, &self.strings),
+            notify::MessageType::Alert => message::compose_alert_message(ctx, &self.strings),
+            notify::MessageType::Reminder => message::compose_reminder_message(ctx, &self.strings),
             notify::MessageType::StartupFailed => {
-                compose::compose_startup_failed_message(ctx, &self.strings)
+                message::compose_startup_failed_message(ctx, &self.strings)
             }
             notify::MessageType::StartupSuccess => {
-                compose::compose_startup_success_message(ctx, &self.strings)
+                message::compose_startup_success_message(ctx, &self.strings)
             }
         }
     }
@@ -62,13 +62,13 @@ impl super::Backend for SlackBackend {
     }
 
     fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
-        let message = self.compose_common(ctx, message_type);
-        serde_json::json!({ "text": message }).to_string()
+        let body = self.compose_common(ctx, message_type);
+        serde_json::json!({ "text": body }).to_string()
     }
 
     fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
-        let message = self.compose_common(ctx, message_type);
-        let value = serde_json::json!({ "text": message });
+        let body = self.compose_common(ctx, message_type);
+        let value = serde_json::json!({ "text": body });
 
         match serde_json::to_string_pretty(&value) {
             Ok(pretty) => pretty,
@@ -83,10 +83,10 @@ impl super::Backend for SlackBackend {
     fn emit(
         &self,
         _ctx: &context::Context,
-        message: &str,
+        body: &str,
         _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
-        let json: serde_json::Value = serde_json::from_str(message).map_err(|e| e.to_string())?;
+        let json: serde_json::Value = serde_json::from_str(body).map_err(|e| e.to_string())?;
 
         match self.agent.post(&self.url).send_json(json) {
             Ok(mut r) => match r.body_mut().read_to_string() {

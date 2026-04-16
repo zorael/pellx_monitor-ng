@@ -31,9 +31,9 @@ impl super::Backend for PrintlnBackend {
     fn emit(
         &self,
         _ctx: &context::Context,
-        message: &str,
+        body: &str,
         _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
-        Ok(Some(message.to_string()))
+        Ok(Some(body.to_string()))
     }
 }

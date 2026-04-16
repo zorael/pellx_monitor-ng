@@ -50,11 +50,11 @@ impl super::Backend for CommandBackend {
     fn emit(
         &self,
         ctx: &context::Context,
-        message: &str,
+        body: &str,
         message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
         let command = process::Command::new(&self.command)
-            .arg(message)
+            .arg(body)
             .arg(format!("{message_type:?}"))
             .arg(ctx.loop_iteration.to_string())
             .arg(get_unix_timestamp(ctx.went_low_at.as_ref()).to_string())

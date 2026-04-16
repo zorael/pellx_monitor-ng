@@ -10,8 +10,8 @@ pub use slack::SlackBackend;
 
 use std::time;
 
-use crate::compose;
 use crate::context;
+use crate::message;
 use crate::notify;
 use crate::settings;
 
@@ -22,13 +22,13 @@ pub trait Backend {
 
     fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
-            notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
-            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
+            notify::MessageType::Alert => message::compose_alert_message(ctx, self.strings()),
+            notify::MessageType::Reminder => message::compose_reminder_message(ctx, self.strings()),
             notify::MessageType::StartupFailed => {
-                compose::compose_startup_failed_message(ctx, self.strings())
+                message::compose_startup_failed_message(ctx, self.strings())
             }
             notify::MessageType::StartupSuccess => {
-                compose::compose_startup_success_message(ctx, self.strings())
+                message::compose_startup_success_message(ctx, self.strings())
             }
         }
     }
@@ -44,7 +44,7 @@ pub trait Backend {
     fn emit(
         &self,
         ctx: &context::Context,
-        message: &str,
+        body: &str,
         message_type: notify::MessageType,
     ) -> Result<Option<String>, String>;
 }

@@ -54,10 +54,10 @@ impl super::Backend for BatsignBackend {
     fn emit(
         &self,
         _ctx: &context::Context,
-        message: &str,
+        body: &str,
         _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
-        let body = format!("Subject: {message}");
+        let body = format!("Subject: {body}");
 
         match self.agent.post(&self.url).send(&body) {
             Ok(mut r) => match r.body_mut().read_to_string() {

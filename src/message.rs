@@ -49,27 +49,27 @@ pub fn compose_startup_success_message(
 }
 
 fn compose_common(ctx: &context::Context, header: &str, body: &str, footer: &str) -> String {
-    let mut message = String::new();
+    let mut msg = String::new();
 
     if header.is_empty() {
-        return message;
+        return msg;
     }
 
-    message.push_str(header);
-    message.push('\n');
-    message.push_str(body);
+    msg.push_str(header);
+    msg.push('\n');
+    msg.push_str(body);
 
     if !footer.is_empty() {
-        message.push('\n');
-        message.push_str(footer);
+        msg.push('\n');
+        msg.push_str(footer);
     }
 
-    message = unescape(&message);
-    replace_placeholders(&message, ctx).trim_end().to_string()
+    msg = unescape(&msg);
+    replace_placeholders(&msg, ctx).trim_end().to_string()
 }
 
-fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
-    let mut out = message.to_string();
+fn replace_placeholders(body: &str, ctx: &context::Context) -> String {
+    let mut out = body.to_string();
 
     if let Some(went_high_at) = &ctx.went_high_at {
         out = out.replace(

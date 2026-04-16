@@ -1,10 +1,10 @@
 mod backend;
 mod cli;
-mod compose;
 mod config;
 mod context;
 mod defaults;
 mod logging;
+mod message;
 mod notify;
 mod settings;
 mod source;
