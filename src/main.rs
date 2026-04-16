@@ -62,7 +62,7 @@ fn main() -> process::ExitCode {
                 src = e.source();
             }
 
-            return process::ExitCode::FAILURE;
+            return process::ExitCode::from(defaults::exit_codes::FAILED_TO_LOAD_CONFIG_FILE);
         }
     };
 
@@ -89,7 +89,7 @@ fn main() -> process::ExitCode {
                 );
             } else if !cli.save {
                 // Allow errors if we're passing --save
-                return process::ExitCode::FAILURE;
+                return process::ExitCode::from(defaults::exit_codes::CONFIG_SANITY_CHECK_FAILED);
             }
         }
     }
@@ -115,7 +115,7 @@ fn main() -> process::ExitCode {
             );
         }
 
-        return process::ExitCode::SUCCESS;
+        return process::ExitCode::from(defaults::exit_codes::NO_NOTIFIERS_CONFIGURED);
     }
 
     run_loop(notifiers, source, &settings)
@@ -130,7 +130,9 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
                 "Specified configuration file {} does not exist.",
                 path.display()
             );
-            Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+            Outcome::EarlyExitCode(process::ExitCode::from(
+                defaults::exit_codes::CONFIG_FILE_DOES_NOT_EXIST,
+            ))
         }
         None => match &resolve_config_directory() {
             Ok(path) if !path.exists() => {
@@ -139,7 +141,9 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
                     "Directory {} does not exist.",
                     path.display()
                 );
-                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+                Outcome::EarlyExitCode(process::ExitCode::from(
+                    defaults::exit_codes::CONFIG_DIRECTORY_NOT_FOUND,
+                ))
             }
             Ok(path) if !path.is_dir() => {
                 logging::tseprintln!(
@@ -147,7 +151,9 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
                     "{} is not a directory.",
                     path.display()
                 );
-                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+                Outcome::EarlyExitCode(process::ExitCode::from(
+                    defaults::exit_codes::CONFIG_DIRECTORY_NOT_A_DIRECTORY,
+                ))
             }
             Ok(path) => {
                 let mut dir = path.clone();
@@ -155,8 +161,13 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
                 Outcome::Success(dir)
             }
             Err(err) => {
-                logging::tseprintln!(cli.disable_timestamps, "Failed to resolve configuration directory: {err}.");
-                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+                logging::tseprintln!(
+                    cli.disable_timestamps,
+                    "Failed to resolve configuration directory: {err}."
+                );
+                Outcome::EarlyExitCode(process::ExitCode::from(
+                    defaults::exit_codes::FAILED_TO_RESOLVE_CONFIG_DIRECTORY,
+                ))
             }
         },
     }
@@ -211,7 +222,9 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
                 settings.disable_timestamps,
                 "Failed to initialize input source! {err}"
             );
-            Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+            Outcome::EarlyExitCode(process::ExitCode::from(
+                defaults::exit_codes::FAILED_TO_LOAD_CONFIG_FILE,
+            ))
         }
     }
 }
