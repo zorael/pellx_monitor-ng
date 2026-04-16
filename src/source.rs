@@ -2,6 +2,7 @@ use clap::ValueEnum;
 use rppal::gpio;
 use serde::{Deserialize, Serialize};
 
+use crate::logging;
 use crate::settings;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -92,11 +93,14 @@ impl DummyInputSource {
     pub fn new(modulus: u32, threshold: u32, settings: &settings::Settings) -> Self {
         if settings.monitor.startup_window > (modulus - threshold) * settings.monitor.loop_interval
         {
-            eprintln!(
-                "Warning: The startup window ({:?}) is longer than the time it takes for the dummy source to transition from low back to high ({} cycles).",
+            logging::tseprintln!(
+                settings.disable_timestamps,
+                "Warning: The startup window ({:?}) is longer than the time it takes for the dummy source to transition from low back to high ({} x {:?}).",
                 settings.monitor.startup_window,
-                modulus - threshold
+                modulus - threshold,
+                settings.monitor.loop_interval
             );
+            println!();
         }
         Self {
             counter: 0,
