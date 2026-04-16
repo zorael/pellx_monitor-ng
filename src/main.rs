@@ -51,7 +51,8 @@ fn main() -> process::ExitCode {
         Err(err) => {
             logging::tseprintln!(
                 cli.disable_timestamps,
-                "Failed to load configuration: {err}"
+                "Failed to load configuration file {}: {err}.",
+                config_file.display()
             );
 
             let mut src = err.source();
@@ -126,7 +127,7 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
         Some(path) => {
             logging::tseprintln!(
                 cli.disable_timestamps,
-                "Config file {} does not exist",
+                "Specified configuration file {} does not exist.",
                 path.display()
             );
             Outcome::EarlyExitCode(process::ExitCode::FAILURE)
@@ -154,7 +155,7 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
                 Outcome::Success(dir)
             }
             Err(err) => {
-                logging::tseprintln!(cli.disable_timestamps, "{err}");
+                logging::tseprintln!(cli.disable_timestamps, "Failed to resolve configuration directory: {err}.");
                 Outcome::EarlyExitCode(process::ExitCode::FAILURE)
             }
         },
@@ -174,7 +175,7 @@ pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
         return Ok(path.join(".config"));
     }
 
-    Err("Could not resolve configuration directory.".to_string())
+    Err("could not determine directory based on UID nor from environment variables".to_string())
 }
 
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
