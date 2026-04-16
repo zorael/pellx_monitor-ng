@@ -229,6 +229,7 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
         source::ChoiceOfInputSource::Dummy => Box::new(source::DummyInputSource::new(
             settings.dummy_source.modulus,
             settings.dummy_source.threshold,
+            settings,
         )),
     };
 

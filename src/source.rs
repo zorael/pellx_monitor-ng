@@ -2,6 +2,8 @@ use clap::ValueEnum;
 use rppal::gpio;
 use serde::{Deserialize, Serialize};
 
+use crate::settings;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Reading {
     Low,
@@ -72,7 +74,15 @@ pub struct DummyInputSource {
 }
 
 impl DummyInputSource {
-    pub fn new(modulus: u32, threshold: u32) -> Self {
+    pub fn new(modulus: u32, threshold: u32, settings: &settings::Settings) -> Self {
+        if settings.monitor.startup_window > (modulus - threshold) * settings.monitor.loop_interval
+        {
+            eprintln!(
+                "Warning: The startup window ({:?}) is longer than the time it takes for the dummy source to transition from low back to high ({} cycles).",
+                settings.monitor.startup_window,
+                modulus - threshold
+            );
+        }
         Self {
             counter: 0,
             modulus,
