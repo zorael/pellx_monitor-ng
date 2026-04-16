@@ -95,7 +95,24 @@ fn main() -> process::ExitCode {
     }
 
     if cli.save {
-        return settings.save(&config_file);
+        return match settings.save(&config_file) {
+            Ok(()) => {
+                logging::tsprintln!(
+                    settings.disable_timestamps,
+                    "Configuration saved successfully to {}.",
+                    config_file.display()
+                );
+                process::ExitCode::SUCCESS
+            }
+            Err(err) => {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Failed to save configuration to {}: {err}.",
+                    config_file.display()
+                );
+                process::ExitCode::from(defaults::exit_codes::FAILED_TO_SAVE_CONFIG_FILE)
+            }
+        };
     }
 
     let source = match init_source(&settings) {

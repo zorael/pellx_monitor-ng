@@ -31,5 +31,6 @@ pub mod exit_codes {
     pub const CONFIG_DIRECTORY_NOT_FOUND: u8 = 13;
     pub const CONFIG_DIRECTORY_NOT_A_DIRECTORY: u8 = 14;
     pub const CONFIG_SANITY_CHECK_FAILED: u8 = 15;
+    pub const FAILED_TO_SAVE_CONFIG_FILE: u8 = 16;
     pub const NO_NOTIFIERS_CONFIGURED: u8 = 20;
 }
