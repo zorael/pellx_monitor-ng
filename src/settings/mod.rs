@@ -96,7 +96,7 @@ impl Settings {
 pub struct MonitorSettings {
     pub source: source::ChoiceOfInputSource,
     pub loop_interval: time::Duration,
-    pub required_time_for_startup: time::Duration,
+    pub startup_window: time::Duration,
 }
 
 impl Default for MonitorSettings {
@@ -104,7 +104,7 @@ impl Default for MonitorSettings {
         Self {
             source: source::ChoiceOfInputSource::Gpio,
             loop_interval: defaults::monitor::LOOP_INTERVAL,
-            required_time_for_startup: defaults::monitor::STARTUP_WINDOW,
+            startup_window: defaults::monitor::STARTUP_WINDOW,
         }
     }
 }
@@ -115,8 +115,8 @@ impl MonitorSettings {
             self.loop_interval = loop_interval;
         }
 
-        if let Some(required_time_for_startup) = config.required_time_for_startup {
-            self.required_time_for_startup = required_time_for_startup;
+        if let Some(startup_window) = config.startup_window {
+            self.startup_window = startup_window;
         }
 
         self.source = config.source;
