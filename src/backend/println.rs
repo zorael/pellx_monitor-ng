@@ -32,12 +32,8 @@ impl super::Backend for PrintlnBackend {
         &self,
         _ctx: &context::Context,
         message: &str,
-        message_type: notify::MessageType,
+        _message_type: notify::MessageType,
     ) -> Result<Option<String>, String> {
-        println!("[println] emit: {message_type:?}");
-        println!("---");
-        println!("{message}");
-        println!("---");
-        Ok(None)
+        Ok(Some(message.to_string()))
     }
 }
