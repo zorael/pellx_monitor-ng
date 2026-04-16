@@ -34,16 +34,7 @@ pub trait Backend {
     }
 
     fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
-        match message_type {
-            notify::MessageType::Alert => compose::compose_alert_message(ctx, self.strings()),
-            notify::MessageType::Reminder => compose::compose_reminder_message(ctx, self.strings()),
-            notify::MessageType::StartupFailed => {
-                compose::compose_startup_failed_message(ctx, self.strings())
-            }
-            notify::MessageType::StartupSuccess => {
-                compose::compose_startup_success_message(ctx, self.strings())
-            }
-        }
+        self.compose(ctx, message_type)
     }
 
     fn stagger_delay(&self) -> time::Duration {
