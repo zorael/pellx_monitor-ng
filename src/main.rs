@@ -32,6 +32,7 @@ fn main() -> process::ExitCode {
     let cli = cli::Cli::parse();
 
     print_banner();
+    println!();
 
     if cli.version {
         println!(
@@ -408,8 +409,10 @@ fn handle_low_reading(
     let Some(time_of_startup) = ctx.time_of_startup else {
         // First loop after going low, can't have started up yet
         // (provided startup_duration > 0)
-        if settings.debug {
+        if settings.verbose {
+            println!();
             logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
+            println!();
         }
 
         ctx.time_of_startup = Some(time::Timestamp::now());
@@ -418,6 +421,10 @@ fn handle_low_reading(
 
     if time_of_startup.instant.elapsed() >= settings.monitor.startup_window {
         // Startup succeeded, can notify success
+        if settings.verbose {
+            println!();
+        }
+
         let result = notify::send_to_all(
             notifiers,
             settings,
@@ -434,6 +441,10 @@ fn handle_low_reading(
             );
         }
 
+        if settings.verbose {
+            println!();
+        }
+
         ctx.startup_succeeded = true;
     }
 }
@@ -446,7 +457,8 @@ fn handle_high_reading(
 ) {
     let is_first_iteration = ctx.loop_iteration == 0;
     if reading_changed || is_first_iteration {
-        if settings.debug {
+        if settings.verbose {
+            println!();
             logging::tsprintln!(settings.disable_timestamps, "-- NEW HIGH --");
         }
 
@@ -465,19 +477,22 @@ fn handle_high_reading(
                     result.total
                 );
             }
-            return;
+        } else {
+            // We just randomly went HIGH for no reason, this is an alert
+            let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Alert);
+
+            if result.success != result.total {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "Failed to send some alert notifications: {}/{} succeeded",
+                    result.success,
+                    result.total
+                );
+            }
         }
 
-        // We just randomly went HIGH for no reason, this is an alert
-        let result = notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Alert);
-
-        if result.success != result.total {
-            logging::tseprintln!(
-                settings.disable_timestamps,
-                "Failed to send some alert notifications: {}/{} succeeded",
-                result.success,
-                result.total
-            );
+        if settings.verbose {
+            println!();
         }
     } else {
         // We have been HIGH for a while, it may be time for a reminder
@@ -486,6 +501,10 @@ fn handle_high_reading(
             .any(|n| n.state().has_due_reminder(ctx.now.instant));
 
         if at_least_one_notifier_due_for_reminder {
+            if settings.verbose {
+                println!();
+            }
+
             let result =
                 notify::send_to_all(notifiers, settings, ctx, notify::MessageType::Reminder);
 
@@ -496,6 +515,10 @@ fn handle_high_reading(
                     result.success,
                     result.total
                 );
+            }
+
+            if settings.verbose {
+                println!();
             }
         }
     }

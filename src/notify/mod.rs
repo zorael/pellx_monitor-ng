@@ -54,6 +54,10 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         let message = self.backend.compose(ctx, MessageType::Alert);
 
+        if message.is_empty() {
+            return SendResult::Success(None);
+        }
+
         match self.backend.emit(ctx, &message, MessageType::Alert) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
@@ -67,6 +71,10 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         }
 
         let message = self.backend.compose(ctx, MessageType::Reminder);
+
+        if message.is_empty() {
+            return SendResult::Success(None);
+        }
 
         match self.backend.emit(ctx, &message, MessageType::Reminder) {
             Ok(output) => SendResult::Success(output),
@@ -84,6 +92,10 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 
         let message = self.backend.compose(ctx, MessageType::StartupFailed);
 
+        if message.is_empty() {
+            return SendResult::Success(None);
+        }
+
         match self.backend.emit(ctx, &message, MessageType::StartupFailed) {
             Ok(output) => SendResult::Success(output),
             Err(output) => SendResult::Failure(output),
@@ -99,6 +111,10 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         }
 
         let message = self.backend.compose(ctx, MessageType::StartupSuccess);
+
+        if message.is_empty() {
+            return SendResult::Success(None);
+        }
 
         match self
             .backend
