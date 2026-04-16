@@ -368,7 +368,7 @@ fn run_loop(
             match reading {
                 source::Reading::Low => {
                     ctx.went_low_at = Some(time::Timestamp::now());
-                    ctx.time_of_startup_from_low = None;
+                    ctx.time_of_startup = None;
                     ctx.startup_succeeded = false;
                 }
                 source::Reading::High => {
@@ -405,18 +405,18 @@ fn handle_low_reading(
     }
 
     // We are low, but we don't know if we have completely started up yet
-    let Some(time_of_startup_from_low) = ctx.time_of_startup_from_low else {
+    let Some(time_of_startup) = ctx.time_of_startup else {
         // First loop after going low, can't have started up yet
         // (provided startup_duration > 0)
         if settings.debug {
             logging::tsprintln!(settings.disable_timestamps, "-- NEW LOW --");
         }
 
-        ctx.time_of_startup_from_low = Some(time::Timestamp::now());
+        ctx.time_of_startup = Some(time::Timestamp::now());
         return;
     };
 
-    if time_of_startup_from_low.instant.elapsed() >= settings.monitor.startup_window {
+    if time_of_startup.instant.elapsed() >= settings.monitor.startup_window {
         // Startup succeeded, can notify success
         let result = notify::send_to_all(
             notifiers,
@@ -450,7 +450,7 @@ fn handle_high_reading(
             logging::tsprintln!(settings.disable_timestamps, "-- NEW HIGH --");
         }
 
-        if let Some(t) = ctx.time_of_startup_from_low
+        if let Some(t) = ctx.time_of_startup
             && t.instant.elapsed() < settings.monitor.startup_window
         {
             // We went high again before startup duration elapsed, this is a startup failure

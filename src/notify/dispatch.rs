@@ -108,7 +108,7 @@ pub fn send_retries(
                 // Drop down and dispatch
             }
             super::MessageType::StartupFailed => {
-                let Some(t) = previous_failed_send.ctx.time_of_startup_from_low else {
+                let Some(t) = previous_failed_send.ctx.time_of_startup else {
                     // Logic error, should never happen
                     continue;
                 };

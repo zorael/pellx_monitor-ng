@@ -92,10 +92,10 @@ fn replace_placeholders(message: &str, ctx: &context::Context) -> String {
         );
     }
 
-    if let Some(time_of_startup_from_low) = &ctx.time_of_startup_from_low {
+    if let Some(time_of_startup) = &ctx.time_of_startup {
         out = out.replace(
-            "{time_of_startup_from_low}",
-            &time::fuzzy_datestamp_of(&time_of_startup_from_low.wall),
+            "{time_of_startup}",
+            &time::fuzzy_datestamp_of(&time_of_startup.wall),
         );
     }
 

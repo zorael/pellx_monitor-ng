@@ -60,7 +60,7 @@ impl super::Backend for CommandBackend {
             .arg(get_unix_timestamp(ctx.went_low_at.as_ref()).to_string())
             .arg(get_unix_timestamp(ctx.went_high_at.as_ref()).to_string())
             .arg(get_unix_timestamp(ctx.time_of_state_change.as_ref()).to_string())
-            .arg(get_unix_timestamp(ctx.time_of_startup_from_low.as_ref()).to_string())
+            .arg(get_unix_timestamp(ctx.time_of_startup.as_ref()).to_string())
             .output()
             .map_err(|e| e.to_string())?;
 
