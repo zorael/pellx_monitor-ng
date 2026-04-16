@@ -124,6 +124,22 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
             Outcome::EarlyExitCode(process::ExitCode::FAILURE)
         }
         None => match &resolve_config_directory() {
+            Ok(path) if !path.exists() => {
+                logging::tseprintln!(
+                    cli.disable_timestamps,
+                    "Directory {} does not exist.",
+                    path.display()
+                );
+                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+            }
+            Ok(path) if !path.is_dir() => {
+                logging::tseprintln!(
+                    cli.disable_timestamps,
+                    "{} is not a directory.",
+                    path.display()
+                );
+                Outcome::EarlyExitCode(process::ExitCode::FAILURE)
+            }
             Ok(path) => {
                 let mut dir = path.clone();
                 dir.push(defaults::program_metadata::CONFIG_FILENAME);
