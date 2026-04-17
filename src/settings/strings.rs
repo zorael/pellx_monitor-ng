@@ -2,20 +2,43 @@
 
 use crate::config;
 
+/// Configurable strings used in composing notifications.
+///
+/// These have default values but can be overridden in the configuration file.
+///
+/// A message has a header and a body, with an optional trailing footer.
 #[derive(Clone)]
 pub struct MessageStrings {
+    /// Header for alert notifications.
     pub alert_header: String,
+
+    /// Body for alert notifications.
     pub alert_body: String,
+
+    /// Header for reminder notifications.
     pub reminder_header: String,
+
+    /// Body for reminder notifications.
     pub reminder_body: String,
+
+    /// Header for startup failure notifications.
     pub startup_failed_header: String,
+
+    /// Body for startup failure notifications.
     pub startup_failed_body: String,
+
+    /// Header for startup success notifications.
     pub startup_success_header: String,
+
+    /// Body for startup success notifications.
     pub startup_success_body: String,
+
+    /// Footer for all notifications, placed at the end of messages.
     pub footer: String,
 }
 
 impl Default for MessageStrings {
+    /// Provides default values for all message strings.
     fn default() -> Self {
         Self {
             alert_header: "PellX burner failure\\n".to_string(),
@@ -32,6 +55,8 @@ impl Default for MessageStrings {
 }
 
 impl MessageStrings {
+    /// Applies the provided configuration as read from disk to this message
+    /// strings struct, modifying it in-place.
     pub fn apply_config(&mut self, config: &config::MessageStrings) {
         if let Some(alert_header) = &config.alert_header {
             self.alert_header.clone_from(alert_header);

@@ -1,3 +1,5 @@
+//! Dispatch logic for sending notifications to notifiers.
+
 use std::thread;
 use std::time;
 
@@ -5,6 +7,16 @@ use crate::context;
 use crate::logging;
 use crate::settings;
 
+/// Sends a notification via all notifiers.
+///
+/// # Parameters
+/// - `notifiers`: The notifiers to send the notification through.
+/// - `settings`: The program's global settings.
+/// - `ctx`: The context of the main loop.
+/// - `message_type`: The type of message being sent.
+///
+/// # Returns
+/// A `NotificationResult` containing counts of the outcomes of the send attempts.
 pub fn send_to_all(
     notifiers: &mut Vec<Box<dyn super::StatefulNotifier>>,
     settings: &settings::Settings,
@@ -47,6 +59,15 @@ pub fn send_to_all(
     result
 }
 
+/// Sends a notification via a single notifier.
+///
+/// # Parameters
+/// - `n`: The notifier to send the notification through.
+/// - `ctx`: The context of the main loop.
+/// - `message_type`: The type of message being sent.
+///
+/// # Returns
+/// A `SendResult` indicating the outcome of the send attempt.
 fn send_to_one(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
@@ -75,6 +96,12 @@ fn send_to_one(
     result
 }
 
+/// Issues retries for notifiers with stored failed send attempts.
+///
+/// # Parameters
+/// - `notifiers`: The notifiers to consider for retries.
+/// - `settings`: The program's global settings.
+/// - `now`: The current time, used to determine if retries are due.
 pub fn send_retries(
     notifiers: &mut Vec<Box<dyn super::StatefulNotifier>>,
     settings: &settings::Settings,
@@ -169,6 +196,16 @@ pub fn send_retries(
     }
 }
 
+/// Dispatches a notification send attempt to the appropriate method of a
+/// notifier, based on the passed message type.
+///
+/// # Parameters
+/// - `n`: The notifier to send the notification through.
+/// - `ctx`: The context of the main loop.
+/// - `message_type`: The type of message being sent.
+///
+/// # Returns
+/// A `SendResult` indicating the outcome of the send attempt.
 fn dispatch(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
@@ -182,6 +219,15 @@ fn dispatch(
     }
 }
 
+/// Applies the result of a send attempt to the state of the notifier,
+/// updating it in-place.
+///
+/// # Parameters
+/// - `n`: The notifier whose state is to be updated based on the send result.
+/// - `ctx`: The context of the main loop.
+/// - `message_type`: The type of message that was attempted to be sent.
+/// - `result`: The result of the send attempt, indicating success, failure,
+///   or a request to try again later.
 fn apply_send_result(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
@@ -218,10 +264,21 @@ fn apply_send_result(
     }
 }
 
+/// Result of a notification send attempt, indicating success, failure, or a
+/// request to try again later.
 #[derive(Default)]
 pub struct NotificationResult {
+    /// The total number of notifiers that a notification was attempted to be
+    /// sent through.
     pub total: usize,
+
+    /// The number of notifiers that successfully sent the notification.
     pub success: usize,
+
+    /// The number of notifiers that failed to send the notification.
     pub failure: usize,
+
+    /// The number of notifiers that requested to try again later, due to
+    /// timing or rate-limiting reasons.
     pub try_again_later: usize,
 }
