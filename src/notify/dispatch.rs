@@ -71,7 +71,8 @@ fn send_to_one(
     }
 
     let result = dispatch(n, ctx, message_type);
-    apply_send_result(n, ctx, message_type, result)
+    apply_send_result(n, ctx, message_type, &result);
+    result
 }
 
 pub fn send_retries(
@@ -159,11 +160,11 @@ pub fn send_retries(
             super::SendResult::TryAgainLater => {}
         }
 
-        let _ = apply_send_result(
+        apply_send_result(
             n,
             &previous_failed_send.ctx,
             previous_failed_send.message_type,
-            result,
+            &result,
         );
     }
 }
@@ -185,8 +186,8 @@ fn apply_send_result(
     n: &mut Box<dyn super::StatefulNotifier>,
     ctx: &context::Context,
     message_type: super::MessageType,
-    result: super::SendResult,
-) -> super::SendResult {
+    result: &super::SendResult,
+) {
     match &result {
         super::SendResult::Success(_) => {
             match message_type {
@@ -215,9 +216,6 @@ fn apply_send_result(
         }
         super::SendResult::TryAgainLater => {}
     }
-
-    // Pass through
-    result
 }
 
 #[derive(Default)]
