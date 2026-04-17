@@ -236,6 +236,9 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
 /// # Returns
 /// - `Ok(path::PathBuf)` representing the resolved configuration directory.
 /// - `Err(String)` if resolution failed.
+///
+/// # Errors
+/// If a configuration directory could not be determined, an `Err(String)` is returned.
 pub fn resolve_config_directory() -> Result<path::PathBuf, String> {
     if let Some(path) = env::var_os("PELLXD_CONFIG_ROOT").map(path::PathBuf::from) {
         return Ok(path);

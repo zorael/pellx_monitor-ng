@@ -1,3 +1,5 @@
+//! Backend implementations for emitting notifications.
+
 mod batsign;
 mod command;
 mod println;
@@ -15,11 +17,25 @@ use crate::message;
 use crate::notify;
 use crate::settings;
 
+/// Trait describing a notification backend.
 pub trait Backend {
+    /// Returns the unique numeric identifier of a backend.
     fn id(&self) -> usize;
+
+    /// Returns the name of a backend.
     fn name(&self) -> &str;
+
+    /// Returns the message strings associated with a backend.
     fn strings(&self) -> &settings::MessageStrings;
 
+    /// Composes a message for a backend.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `message_type`: Type of the message being composed.
+    ///
+    /// # Returns
+    /// A composed message body, as a string.
     fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
             notify::MessageType::Alert => message::compose_alert_message(ctx, self.strings()),
@@ -33,14 +49,40 @@ pub trait Backend {
         }
     }
 
+    /// Composes a message for a backend in a way that is suitable for
+    /// display in terminal output.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `message_type`: Type of the message being composed.
+    ///
+    /// # Returns
+    /// A composed display message, as a string.
     fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         self.compose(ctx, message_type)
     }
 
+    /// Returns the stagger delay for a backend.
+    ///
+    /// The default duration is zero.
     fn stagger_delay(&self) -> time::Duration {
         time::Duration::ZERO
     }
 
+    /// Emits a notification via a backend.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `body`: Composed message body to send to the backend.
+    /// - `message_type`: Type of the message being emitted.
+    ///
+    /// # Returns
+    /// - `Ok(Some(String))` if the notification was sent successfully and the
+    ///   response should be shown.
+    /// - `Ok(None)` if the notification was sent successfully but the response
+    ///   should not be shown.
+    /// - `Err(String)` if there was an error sending the notification, with
+    ///   the error message as a string.
     fn emit(
         &self,
         ctx: &context::Context,

@@ -1,3 +1,5 @@
+//! Slack backend implementation.
+
 use std::time;
 
 use crate::context;
@@ -5,16 +7,37 @@ use crate::message;
 use crate::notify;
 use crate::settings;
 
+/// Backend implementation for sending notifications to Slack via webhooks.
 pub struct SlackBackend {
+    /// Unique numeric identifier for this backend instance.
     pub id: usize,
+
+    /// Name of the backend, used for display purposes.
     pub name: String,
+
+    /// HTTP client agent used to send requests to the Slack API.
     pub agent: ureq::Agent,
+
+    /// URL of the Slack webhook to send notifications to.
     pub url: String,
+
+    /// Whether to show the HTTP response from the Slack API in terminal output.
     pub show_response: bool,
+
+    /// Custom message strings, used to compose notifications.
     pub strings: settings::MessageStrings,
 }
 
 impl SlackBackend {
+    /// Creates a new instance of the Slack backend.
+    ///
+    /// # Parameters
+    /// - `id`: Unique numeric identifier for this backend instance.
+    /// - `agent`: HTTP client agent used to send requests to the Slack API.
+    /// - `url`: URL of the Slack webhook to send notifications to.
+    /// - `show_response`: Whether to show the HTTP response from the Slack
+    ///   API in terminal output.
+    /// - `strings`: Custom message strings, used to compose notifications.
     pub fn new(
         id: usize,
         agent: ureq::Agent,
@@ -34,6 +57,14 @@ impl SlackBackend {
         }
     }
 
+    /// Helper to deduplicate the dispatch of message composition logic.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `message_type`: Type of the message being composed.
+    ///
+    /// # Returns
+    /// A composed message body.
     fn compose_common(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         match message_type {
             notify::MessageType::Alert => message::compose_alert_message(ctx, &self.strings),
@@ -49,23 +80,45 @@ impl SlackBackend {
 }
 
 impl super::Backend for SlackBackend {
+    /// Returns the unique numeric identifier of this backend instance.
     fn id(&self) -> usize {
         self.id
     }
 
+    /// Returns the name of this backend instance.
     fn name(&self) -> &str {
         &self.name
     }
 
+    /// Returns the message strings associated with this backend instance.
     fn strings(&self) -> &settings::MessageStrings {
         &self.strings
     }
 
+    /// Composes a message for this backend instance.
+    ///
+    /// The message is composed as a JSON string, which is not very humanly
+    /// readable. For a pretty-print version, see `compose_display`.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `message_type`: Type of the message being composed.
+    ///
+    /// # Returns
+    /// A JSON string containing the composed message.
     fn compose(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         let body = self.compose_common(ctx, message_type);
         serde_json::json!({ "text": body }).to_string()
     }
 
+    /// Composes a message for display purposes for this backend instance.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `message_type`: Type of the message being composed.
+    ///
+    /// # Returns
+    /// A pretty-printed JSON string containing the composed message.
     fn compose_display(&self, ctx: &context::Context, message_type: notify::MessageType) -> String {
         let body = self.compose_common(ctx, message_type);
         let value = serde_json::json!({ "text": body });
@@ -76,10 +129,27 @@ impl super::Backend for SlackBackend {
         }
     }
 
+    /// Returns the stagger delay for this backend instance.
+    ///
+    /// For Slack, this is currently a hardcoded duration of 300 milliseconds.
     fn stagger_delay(&self) -> time::Duration {
         time::Duration::from_millis(300)
     }
 
+    /// Emits a notification via the Slack backend.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context of the notification.
+    /// - `body`: The JSON string containing the composed message.
+    /// - `message_type`: Type of the message being emitted.
+    ///
+    /// # Returns
+    /// - `Ok(Some(String))` if the notification was sent successfully and the
+    ///   response should be shown.
+    /// - `Ok(None)` if the notification was sent successfully but the response
+    ///   should not be shown.
+    /// - `Err(String)` if there was an error sending the notification, with
+    ///   the error message as a string.
     fn emit(
         &self,
         _ctx: &context::Context,
