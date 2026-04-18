@@ -1,13 +1,13 @@
 [Unit]
-Description = PellX pellets burner monitor daemon
-After = network-online.target
-Wants = network-online.target
+Description=PellX pellets burner monitor daemon
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-Type = simple
-ExecStart = /usr/local/bin/pellxd
-Restart = on-failure
-RestartSec = 10s
+Type=simple
+ExecStart=/usr/local/bin/pellxd
+Restart=on-failure
+RestartSec=10s
 
 [Install]
-WantedBy = multi-user.target
+WantedBy=multi-user.target
