@@ -51,7 +51,7 @@ fn main() -> process::ExitCode {
 
     if cli.version {
         println!(
-            "\nThis project is licensed under {}, at your option.",
+            "This project is licensed under {}, at your option.",
             defaults::program_metadata::LICENSE
         );
         return process::ExitCode::SUCCESS;
