@@ -10,10 +10,8 @@ use crate::time;
 /// The message is constructed from the provided `context::Context` of the main
 /// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
 ///
-/// Merely leverages `compose_common`.
-///
 /// Some placeholders are supported in the message strings, which will be
-/// replaced with values from the context. See `replace_placeholders`.
+/// replaced with values from the context. See [`replace_placeholders`].
 ///
 /// # Parameters
 /// - `ctx`: The context of the main loop, containing state and timestamps.
@@ -32,20 +30,7 @@ pub fn compose_alert_message(ctx: &context::Context, strings: &settings::Message
 
 /// Composes a message for a reminder notification.
 ///
-/// The message is constructed from the provided `context::Context` of the main
-/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
-///
-/// Merely leverages `compose_common`.
-///
-/// Some placeholders are supported in the message strings, which will be
-/// replaced with values from the context. See `replace_placeholders`.
-///
-/// # Parameters
-/// - `ctx`: The context of the main loop, containing state and timestamps.
-/// - `strings`: The message strings from the backend of the calling notifier.
-///
-/// # Returns
-/// A composed reminder message, ready to be sent by a notifier.
+/// See [`compose_alert_message`] for more details.
 pub fn compose_reminder_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -60,20 +45,7 @@ pub fn compose_reminder_message(
 
 /// Composes a message for a notification upon failure to start up properly.
 ///
-/// The message is constructed from the provided `context::Context` of the main
-/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
-///
-/// Merely leverages `compose_common`.
-///
-/// Some placeholders are supported in the message strings, which will be
-/// replaced with values from the context. See `replace_placeholders`.
-///
-/// # Parameters
-/// - `ctx`: The context of the main loop, containing state and timestamps.
-/// - `strings`: The message strings from the backend of the calling notifier.
-///
-/// # Returns
-/// A composed startup failed message, ready to be sent by a notifier.
+/// See [`compose_alert_message`] for more details.
 pub fn compose_startup_failed_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -88,20 +60,7 @@ pub fn compose_startup_failed_message(
 
 /// Composes a message for a notification upon successful startup.
 ///
-/// The message is constructed from the provided `context::Context` of the main
-/// loop, and the `settings::MessageStrings` of the backend of the calling notifier.
-///
-/// Merely leverages `compose_common`.
-///
-/// Some placeholders are supported in the message strings, which will be
-/// replaced with values from the context. See `replace_placeholders`.
-///
-/// # Parameters
-/// - `ctx`: The context of the main loop, containing state and timestamps.
-/// - `strings`: The message strings from the backend of the calling notifier.
-///
-/// # Returns
-/// A composed startup success message, ready to be sent by a notifier.
+/// See [`compose_alert_message`] for more details.
 pub fn compose_startup_success_message(
     ctx: &context::Context,
     strings: &settings::MessageStrings,
@@ -121,7 +80,7 @@ pub fn compose_startup_success_message(
 /// Having it in a separate function like this greatly deduplicates code.
 ///
 /// Some placeholders are supported in the message strings, which will be
-/// replaced with values from the context. See `replace_placeholders`.
+/// replaced with values from the context. See [`replace_placeholders`].
 ///
 /// # Parameters
 /// - `ctx`: The context of the main loop, containing state and timestamps.
