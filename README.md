@@ -24,6 +24,10 @@ Options:
 
 Create a [configuration file](#configuration) by passing `--save`.
 
+```sh
+cargo run -- --save
+```
+
 ```toml
 [monitor]
 source = "gpio"
@@ -47,8 +51,10 @@ urls = ["https://hooks.slack.com/services/..."]
     - [formatting mails](#formatting-mails)
   - [external command](#external-command)
     - [arguments](#arguments)
-  - [println](#println)
+  - [`println`](#println)
 - [systemd](#systemd)
+  - [enable and start](#enable-and-start)
+- [ai](#ai)
 - [todo](#todo)
 - [license](#license)
 
@@ -82,7 +88,7 @@ See the [**systemd**](#systemd) section for instructions on how to set it up as 
 
 ### cross-compilation
 
-A device like the Pi Zero 2W can *run* the program but does not have enough memory to compile it with default flags. Your alternatives are to build it in serial mode (with `-j1`) on the Pi itself, or to cross-compile it on a more powerful machine.
+Weaker Raspberry Pi models, like the Pi Zero 2W, can *run* the program but does not have enough memory to compile it with default flags. Your alternatives are to build it in serial mode (with `-j1`) on the device itself, or to cross-compile it on a more powerful machine.
 
 Regrettably, manually setting up cross-compilation can be non-trivial. As such, use of one of [`cargo-cross`](https://github.com/cross-rs/cross) or [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild) is recommended (but not required). For the latter you need to install a [**Zig**](https://ziglang.org) compiler. Refer to your repositories, alternatively install it via Homebrew (`brew install zig`).
 
@@ -120,7 +126,7 @@ Mind that build times will be *very* long. Remember to use a heatsink. (Cross-co
 
 ## configuration
 
-Run the program with `--save` to generate a configuration file. By default, this will be stored as `~/.config/pellxd/config.toml`. You can specify an alternative path with `--config <file>`.
+Run the program with `--save` to generate a configuration file. By default, this will be stored as `~/.config/pellxd.toml`. You can specify an alternative path with `--config <file>`.
 
 ```sh
 cargo run -- --config ~/pellxd.toml --save
@@ -132,7 +138,7 @@ If a filename is not specified, the program will infer a configuration directory
 - `/etc` if run as the root user
 - `$XDG_CONFIG_HOME` if set
 - `$HOME/.config` if `$HOME` is set
-- ...or fail to start if none match.
+- ...or fail to start if none of the above apply.
 
 The default filename for the configuration file is `pellxd.toml`. If the file does not exist, the program will create it with default values.
 
@@ -195,11 +201,11 @@ Messages can container certain placeholders that will be replaced with dynamic c
 
 ## backends
 
-The four notification backends are as messages sent to **Slack** channels, as short emails sent via the free **Batsign** service, by invocation of an **external command**, and as **terminal output** (via `println`).
+Notifications can be sent as messages to **Slack** channels, as short emails sent via the free **Batsign** service, by invocation of an **external command**, and as **terminal output** (via `println`). Each of these backends can be enabled or disabled independently of the others, and each has its own set of customizable strings.
 
 ### slack
 
-Messages to Slack channels can trivially be pushed by use of [webhook URLs](https://en.wikipedia.org/wiki/Webhook). HTTP requests made to these will end up as messages in the channels they refer to. See [this guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) in the Slack documentation for developers on how to get started.
+Messages to Slack channels can trivially be pushed through use of [webhook URLs](https://en.wikipedia.org/wiki/Webhook). HTTP requests made to these will end up as messages in the channels they refer to. See [this guide](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) in the Slack documentation for developers on how to get started.
 
 It is recommended that you make an entry in `/etc/hosts` to manually resolve `hooks.slack.com` to *an* IP of the underlying Slack server, to avoid potential DNS lookup failures.
 
@@ -212,11 +218,9 @@ urls = ["https://hooks.slack.com/services/REDACTED/SECRET/KEY", "https://hooks.s
 show_response = false
 ```
 
-`show_response` will print the response body of the HTTP request to the terminal.
+`show_response` will make the response body of the HTTP request be printed to the terminal.
 
 #### formatting messages
-
-> See the section on [backend-specific strings](#backend-specific-strings) for how to modify how messages are composed.
 
 Slack supports some formatting. Text between asterisks `*` will be in \***bold**\*, text between underscores `_` will be in \_*italics*\_, text between tildes `~` will be in \~~~strikethrough~~\~, etc.
 
@@ -247,21 +251,19 @@ urls = ["https://batsign.me/at/name@host.tld/secretkey", "https://batsign.me/at/
 show_response = false
 ```
 
-`show_response` will print the response body of the HTTP request to the terminal.
+`show_response` will make the response body of the HTTP request be printed to the terminal.
 
 #### formatting mails
 
-It is not possible to format text in Batsign emails with HTML markup. The best you can do is to use Unicode characters.
+It is not possible to format text in Batsign emails with HTML markup. The best you can do is to get creative with Unicode characters.
 
 ### external command
 
 You can also have the program execute an external command as a way to push notifications, although there are several caveats.
 
-- The command run will be passed several arguments in a specific hardcoded order, and it is unlikely that it will immediately suit whatever notification program you want to use. Realistically what you will end up doing is writing some glue-layer script that maps the arguments to something the notification program can use.
+- The command run will be passed several arguments in a specific hardcoded order, and it is unlikely that it will immediately suit whatever notification program you want to use. Realistically what you will end up doing is writing some glue-layer script that maps the arguments to something the notification program can use. (Remember to `chmod` the script executable `+x`.)
 
-- If you run the project binary as root (which may well be unavoidable) the external command specified will in turn also be run as root. If you need it to be run as a different user, you will have to use `systemd-run` or `su` in your shell script.
-
-- Remember to `chmod` the script executable `+x`.
+- If you run the project binary as root, the external command specified will in turn also be run as root. If you need it to be run as a different user, you will have to recurse into it with something like `systemd-run` or `su`.
 
 ```toml
 [command]
@@ -284,7 +286,7 @@ The order of arguments is as follows:
 6. `$6`: The UNIX timestamp of when the reading from the pellets burner last *changed* (regardless of the values it went from or to)
 7. `$7`: The UNIX timestamp of when the pellets burner last tried to start up, which is the first `LOW` after a `HIGH`
 
-### println
+### `println`
 
 The `println` backend is mostly there for logging and debugging purposes.
 
@@ -299,7 +301,7 @@ The program lends itself to being run as a [**systemd**](https://systemd.io) ser
 
 To facilitate this, a basic service unit file is included in the repository. Copy it into `/etc/systemd/system/`, then use `systemctl edit` to modify it to point the `ExecStart` directive to the actual location of your compiled binary.
 
-If yours is in the default location of `/usr/local/bin/pellxd`, you can skip ahead to [**enable and start**](#enable-and-start).
+> If yours is in the default location of `/usr/local/bin/pellxd`, you can skip ahead to [**enable and start**](#enable-and-start).
 
 ```sh
 sudo cp pellxd.service /etc/systemd/system/
@@ -326,7 +328,11 @@ Be sure to include the empty `ExecStart=` line to clear the default value, as `E
 sudo systemctl enable --now pellxd.service
 ```
 
-The `--now` makes it start the service immediately, and not just enable it for autostart on the next boot.
+`enable` will make the service automatically start on boot, and `--now` will make it start immediately.
+
+## ai
+
+[**GitHub Copilot AI**](https://github.com/features/copilot/ai-code-editor) was used (in [**Visual Studio Code**](https://code.visualstudio.com)) for inline suggestions and to tab-complete some code and documentation. [**Claude**](https://claude.ai) was used to answer questions and teach Rust. No code from "write me a function doing *xyz*" prompts is included in this project.
 
 ## todo
 
