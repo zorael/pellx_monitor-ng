@@ -41,7 +41,7 @@ pub trait InputSource {
 }
 
 /// Enum representing the choice of input source to use for monitoring.
-#[derive(Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum ChoiceOfInputSource {
     /// Represents the GPIO input source that reads from a GPIO pin.
@@ -160,7 +160,6 @@ impl DummyInputSource {
                 modulus - threshold,
                 settings.monitor.loop_interval
             );
-            println!();
         }
         Self {
             counter: 0,

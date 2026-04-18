@@ -132,6 +132,7 @@ impl Settings {
 }
 
 /// Settings related to the monitoring main loop of the program.
+#[derive(Debug)]
 pub struct MonitorSettings {
     /// The input source to use for monitoring.
     pub source: source::ChoiceOfInputSource,
@@ -173,6 +174,7 @@ impl MonitorSettings {
 }
 
 /// Settings related to the GPIO input source.
+#[derive(Debug)]
 pub struct GpioSettings {
     /// The GPIO pin number to which the burner is connected.
     pub pin: u8,
@@ -197,6 +199,7 @@ impl Default for GpioSettings {
 }
 
 /// Settings related to the dummy input source.
+#[derive(Debug)]
 pub struct DummyInputSourceSettings {
     /// Modulus value to determine the cycle length of the readings.
     pub modulus: u32,

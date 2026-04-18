@@ -155,6 +155,10 @@ fn main() -> process::ExitCode {
         return process::ExitCode::from(defaults::exit_codes::NO_NOTIFIERS_CONFIGURED);
     }
 
+    logging::tsprintln!(settings.disable_timestamps, "Initialization complete.");
+    display_settings(&settings);
+
+    logging::tsprintln!(settings.disable_timestamps, "Entering monitor loop...");
     run_loop(notifiers, source, &settings)
 }
 
@@ -407,6 +411,23 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
     }
 
     notifiers
+}
+
+/// Prints settings related to the monitor loop to the terminal.
+fn display_settings(settings: &settings::Settings) {
+    println!();
+    println!("{:#?}", settings.monitor);
+
+    match settings.monitor.source {
+        source::ChoiceOfInputSource::Gpio => {
+            println!("{:#?}", settings.gpio);
+        }
+        source::ChoiceOfInputSource::Dummy => {
+            println!("{:#?}", settings.dummy_source);
+        }
+    }
+
+    println!();
 }
 
 /// Main loop of the program.
