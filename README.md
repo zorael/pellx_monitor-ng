@@ -180,7 +180,7 @@ All of these strings are optional and can be left as an empty string `""` to dis
 Messages can container certain placeholders that will be replaced with dynamic content when composing the message, such as `{fuzzy_high}` and `{fuzzy_low}` in the examples above.
 
 | Placeholder | Description |
-|-------------|-------------|
+| ----------- | ----------- |
 | `{fuzzy_now}` | The current time in a human-friendly format that may be a mixture of date and time, depending how long ago the time was. In the case of the current time, this will always be a timestamp without date. |
 | `{time_now}` | The current time in `HH:MM` format. |
 | `{date_now}` | The current date in `YYYY-MM-DD` format. |
