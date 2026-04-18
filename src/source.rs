@@ -44,11 +44,13 @@ pub trait InputSource {
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
 #[serde(rename_all = "lowercase")]
 pub enum ChoiceOfInputSource {
-    /// Represents the GPIO input source that reads from a GPIO pin.
+    // Don't make this a /// documentation comment or the --help listing wlil be too big.
+    // Represents the GPIO input source that reads from a GPIO pin.
     #[default]
     Gpio,
 
-    /// Represents the dummy input source which cycles through `Reading` states.
+    // As above.
+    // Represents the dummy input source which cycles through `Reading` states.
     Dummy,
 }
 
