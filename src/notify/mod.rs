@@ -83,7 +83,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         let body = self.backend.compose(ctx, MessageType::Alert);
 
         if body.is_empty() {
-            return SendResult::Success(None);
+            return SendResult::NoMessage;
         }
 
         match self.backend.emit(ctx, &body, MessageType::Alert) {
@@ -108,7 +108,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         let body = self.backend.compose(ctx, MessageType::Reminder);
 
         if body.is_empty() {
-            return SendResult::Success(None);
+            return SendResult::NoMessage;
         }
 
         match self.backend.emit(ctx, &body, MessageType::Reminder) {
@@ -135,7 +135,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         let body = self.backend.compose(ctx, MessageType::StartupFailed);
 
         if body.is_empty() {
-            return SendResult::Success(None);
+            return SendResult::NoMessage;
         }
 
         match self.backend.emit(ctx, &body, MessageType::StartupFailed) {
@@ -162,7 +162,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
         let body = self.backend.compose(ctx, MessageType::StartupSuccess);
 
         if body.is_empty() {
-            return SendResult::Success(None);
+            return SendResult::NoMessage;
         }
 
         match self.backend.emit(ctx, &body, MessageType::StartupSuccess) {
@@ -349,6 +349,10 @@ pub enum SendResult {
 
     /// The send attempt failed, with an output string describing the failure.
     Failure(String),
+
+    /// The send attempt was not made due to the message the backend rendered
+    /// ended up empty.
+    NoMessage,
 
     /// The send attempt was postponed due to spacing logic.
     TryAgainLater,

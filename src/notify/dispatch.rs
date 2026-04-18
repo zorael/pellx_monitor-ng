@@ -52,6 +52,15 @@ pub fn send_to_all(
                 );
                 result.failure += 1;
             }
+            super::SendResult::NoMessage => {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "[{}] push skipped due to the backend having rendered an empty message (type: {:?})",
+                    n.name(),
+                    message_type
+                );
+                result.try_again_later += 1;
+            }
             super::SendResult::TryAgainLater => result.try_again_later += 1,
         }
     }
@@ -184,6 +193,14 @@ pub fn send_retries(
                     previous_failed_send.message_type
                 );
             }
+            super::SendResult::NoMessage => {
+                logging::tseprintln!(
+                    settings.disable_timestamps,
+                    "[{}] retry skipped due to the backend having rendered an empty message (type: {:?})",
+                    n.name(),
+                    previous_failed_send.message_type
+                );
+            }
             super::SendResult::TryAgainLater => {}
         }
 
@@ -235,7 +252,7 @@ fn apply_send_result(
     result: &super::SendResult,
 ) {
     match &result {
-        super::SendResult::Success(_) => {
+        super::SendResult::Success(_) | super::SendResult::NoMessage => {
             match message_type {
                 super::MessageType::StartupSuccess => {
                     // End of the line, no reminders wanted
