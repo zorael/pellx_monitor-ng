@@ -15,7 +15,7 @@ pub struct Cli {
         value_enum,
         value_name = "option",
         ignore_case = true,
-        default_value = "dummy"
+        default_value = "gpio"
     )]
     pub source: Option<source::ChoiceOfInputSource>,
 
