@@ -34,25 +34,39 @@ pub fn send_to_all(
             thread::sleep(n.stagger_delay());
         }
         match send_to_one(n, ctx, message_type) {
-            super::SendResult::Success(output) => {
+            super::SendResult::Success(output) if settings.dry_run => {
                 if let Some(output) = output {
+                    println!();
                     logging::tsprintln!(
                         settings.disable_timestamps,
-                        "[{}] push success:\n{output}",
+                        "[{}] dry-run:\n---\n{output}\n---",
+                        n.name()
+                    );
+                }
+                result.success += 1;
+            }
+            super::SendResult::Success(output) => {
+                if let Some(output) = output {
+                    println!();
+                    logging::tsprintln!(
+                        settings.disable_timestamps,
+                        "[{}] push success:\n---\n{output}\n---",
                         n.name()
                     );
                 }
                 result.success += 1;
             }
             super::SendResult::Failure(output) => {
+                println!();
                 logging::tseprintln!(
                     settings.disable_timestamps,
-                    "[{}] push FAILURE:\n{output}",
+                    "[{}] push FAILURE:\n---\n{output}\n---",
                     n.name()
                 );
                 result.failure += 1;
             }
             super::SendResult::NoMessage => {
+                println!();
                 logging::tseprintln!(
                     settings.disable_timestamps,
                     "[{}] push skipped due to the backend having rendered an empty message (type: {:?})",
