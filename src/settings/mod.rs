@@ -129,15 +129,18 @@ impl Settings {
         if self.monitor.source == source::ChoiceOfInputSource::Dummy
             && self.dummy_source.modulus > self.dummy_source.threshold
         {
-            let cycle = self.monitor.loop_interval
+            let modulus = time::Duration::from_secs(u64::from(self.dummy_source.modulus));
+            let low_cycle = self.monitor.loop_interval
                 * (self.dummy_source.modulus - self.dummy_source.threshold);
 
-            if self.monitor.startup_window > cycle {
+            if let Some(low_cycle) = modulus.checked_sub(low_cycle)
+                && self.monitor.startup_window > low_cycle
+            {
                 warnings.push(format!(
-                    "The startup window ({}) is longer than the time \
-                    it takes for the dummy source to transition from low back to high ({}).",
+                    "The startup window ({}) is longer than the time the \
+                    dummy source spends in low before transitioning to high ({}).",
                     humantime::format_duration(self.monitor.startup_window),
-                    humantime::format_duration(cycle)
+                    humantime::format_duration(low_cycle)
                 ));
             }
         }
