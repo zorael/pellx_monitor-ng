@@ -88,22 +88,18 @@ fn main() -> process::ExitCode {
     match settings.sanity_check() {
         Ok(()) => (),
         Err(errors) => {
-            logging::tseprintln!(
-                settings.disable_timestamps,
-                "Configuration sanity check failed with the following errors:"
-            );
-
             for error in errors {
-                logging::tseprintln!(settings.disable_timestamps, "  - {error}");
+                logging::tseprintln!(settings.disable_timestamps, "Error: {error}");
             }
 
-            if settings.dry_run {
+            if cli.save {
+                // Allow errors if we're passing --save
+            } else if settings.dry_run {
                 logging::tseprintln!(
                     settings.disable_timestamps,
                     "Continuing anyway because --dry-run is enabled."
                 );
-            } else if !cli.save {
-                // Allow errors if we're passing --save
+            } else {
                 return process::ExitCode::from(defaults::exit_codes::CONFIG_SANITY_CHECK_FAILED);
             }
         }
