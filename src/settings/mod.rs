@@ -124,7 +124,11 @@ impl Settings {
     pub fn warnings_check(&self) -> Vec<String> {
         let mut warnings = Vec::new();
 
-        if self.monitor.source == source::ChoiceOfInputSource::Dummy {
+        // Must not perform the cycle calculation below if modulus <= threshold
+        // or it will panic.
+        if self.monitor.source == source::ChoiceOfInputSource::Dummy
+            && self.dummy_source.modulus > self.dummy_source.threshold
+        {
             let cycle = self.monitor.loop_interval
                 * (self.dummy_source.modulus - self.dummy_source.threshold);
 
