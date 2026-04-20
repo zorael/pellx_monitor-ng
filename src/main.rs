@@ -463,18 +463,18 @@ fn run_loop(
             // Reset
             match reading {
                 source::Reading::Low => {
-                    ctx.went_low_at = Some(time::Timestamp::now());
+                    ctx.went_low_at = Some(ctx.now);
                     ctx.time_of_startup = None;
                     ctx.startup_succeeded = false;
                 }
                 source::Reading::High => {
-                    ctx.went_high_at = Some(time::Timestamp::now());
+                    ctx.went_high_at = Some(ctx.now);
                 }
             }
 
             // Update
             ctx.previous_reading = reading;
-            ctx.time_of_state_change = Some(time::Timestamp::now());
+            ctx.time_of_state_change = Some(ctx.now);
         }
 
         match reading {
@@ -518,7 +518,7 @@ fn handle_low_reading(
             println!();
         }
 
-        ctx.time_of_startup = Some(time::Timestamp::now());
+        ctx.time_of_startup = Some(ctx.now);
         return;
     };
 
