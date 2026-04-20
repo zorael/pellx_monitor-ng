@@ -299,8 +299,7 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
     if let Err(err) = source.init() {
         logging::tseprintln!(
             settings.disable_timestamps,
-            "Failed to initialize {} source: {err}",
-            source.name()
+            "Failed to initialize source: {err}",
         );
         return Outcome::EarlyExitCode(process::ExitCode::from(
             defaults::exit_codes::FAILED_TO_INITIALIZE_INPUT_SOURCE,
@@ -310,13 +309,8 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
     match source.sanity_check() {
         Ok(()) => Outcome::Success(source),
         Err(errors) => {
-            logging::tseprintln!(
-                settings.disable_timestamps,
-                "Input source sanity check failed with the following errors:"
-            );
-
             for error in errors {
-                logging::tseprintln!(settings.disable_timestamps, "  - {error}");
+                logging::tseprintln!(settings.disable_timestamps, "Error: {error}");
             }
 
             Outcome::EarlyExitCode(process::ExitCode::from(
