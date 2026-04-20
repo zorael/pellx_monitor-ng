@@ -454,7 +454,7 @@ fn run_loop(
 
         if settings.debug {
             println!(
-                "{}: {reading:?}/{:?} => {reading_changed}",
+                "{:>2}: {reading:?}/{:?} => {reading_changed}",
                 ctx.loop_iteration, ctx.previous_reading
             );
         }
