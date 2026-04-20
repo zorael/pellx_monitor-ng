@@ -34,7 +34,7 @@ use std::time as std_time;
 /// Prints a banner to the terminal with some information about the program.
 fn print_banner() {
     println!(
-        "{} v{} | copyright (c) 2026 {}\n$ git clone {}",
+        "{} v{} | copyright (c) 2026 {}\n$ git clone {}\n",
         defaults::program_metadata::NAME,
         defaults::program_metadata::VERSION,
         defaults::program_metadata::AUTHORS,
@@ -47,7 +47,6 @@ fn main() -> process::ExitCode {
     let cli = cli::Cli::parse();
 
     print_banner();
-    println!();
 
     if cli.version {
         println!(
