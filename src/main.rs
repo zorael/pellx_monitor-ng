@@ -296,6 +296,8 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
         )),
     };
 
+    logging::tsprintln!(settings.disable_timestamps, "Input: {}", source.name());
+
     if let Err(err) = source.init() {
         logging::tseprintln!(
             settings.disable_timestamps,
