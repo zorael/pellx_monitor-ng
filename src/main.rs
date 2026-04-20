@@ -300,7 +300,8 @@ fn init_source(settings: &settings::Settings) -> Outcome<Box<dyn source::InputSo
     if let Err(err) = source.init() {
         logging::tseprintln!(
             settings.disable_timestamps,
-            "Failed to initialize input source: {err}"
+            "Failed to initialize {} source: {err}",
+            source.name()
         );
         return Outcome::EarlyExitCode(process::ExitCode::from(
             defaults::exit_codes::FAILED_TO_INITIALIZE_INPUT_SOURCE,

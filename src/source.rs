@@ -20,6 +20,9 @@ pub enum Reading {
 
 /// Trait representing an input source from which a `Reading` can be read.
 pub trait InputSource {
+    /// Name of the input source.
+    fn name(&self) -> String;
+
     /// Initializes the input source, performing any necessary setup that
     /// may fail (and is as such not part of a `new` constructor).
     ///
@@ -41,7 +44,7 @@ pub trait InputSource {
 }
 
 /// Enum representing the choice of input source to use for monitoring.
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ChoiceOfInputSource {
     // Don't make this a /// documentation comment or the --help listing wlil be too big.
@@ -74,11 +77,16 @@ impl GpioInputSource {
 }
 
 impl InputSource for GpioInputSource {
+    /// Name of the input source, including the GPIO pin number in the string.
+    fn name(&self) -> String {
+        format!("GPIO{}", self.pin_number)
+    }
+
     /// Initializes the GPIO input source.
     fn init(&mut self) -> Result<(), String> {
         match self.sub_init() {
             Ok(()) => Ok(()),
-            Err(e) => Err(format!("GPIO error: {e}")),
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -172,6 +180,11 @@ impl DummyInputSource {
 }
 
 impl InputSource for DummyInputSource {
+    /// Name of the input source, which is simply "dummy".
+    fn name(&self) -> String {
+        "dummy".to_string()
+    }
+
     /// Initializes the dummy input source.
     ///
     /// Literally does nothing.
