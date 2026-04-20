@@ -4,9 +4,6 @@ use clap::ValueEnum;
 use rppal::gpio;
 use serde::{Deserialize, Serialize};
 
-use crate::logging;
-use crate::settings;
-
 /// Enum representing a reading from an input source, which can be either
 /// electrically LOW or HIGH.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -160,17 +157,7 @@ impl DummyInputSource {
     /// - `threshold`: The threshold value to determine the point in the cycle
     ///   where readings transition from `Reading::Low` to `Reading::High`.
     /// - `settings`: The program settings.
-    pub fn new(modulus: u32, threshold: u32, settings: &settings::Settings) -> Self {
-        if settings.monitor.startup_window > (modulus - threshold) * settings.monitor.loop_interval
-        {
-            logging::tseprintln!(
-                settings.disable_timestamps,
-                "Warning: The startup window ({:?}) is longer than the time it takes for the dummy source to transition from low back to high ({} x {:?}).",
-                settings.monitor.startup_window,
-                modulus - threshold,
-                settings.monitor.loop_interval
-            );
-        }
+    pub fn new(modulus: u32, threshold: u32) -> Self {
         Self {
             counter: 0,
             modulus,
