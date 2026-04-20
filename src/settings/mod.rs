@@ -117,6 +117,30 @@ impl Settings {
         }
     }
 
+    /// Performs a check for any non-fatal warnings in the settings.
+    ///
+    /// # Returns
+    /// A vector of strings describing any warnings.
+    pub fn warnings_check(&self) -> Vec<String> {
+        let mut warnings = Vec::new();
+
+        if self.monitor.source == source::ChoiceOfInputSource::Dummy {
+            let cycle = self.monitor.loop_interval
+                * (self.dummy_source.modulus - self.dummy_source.threshold);
+
+            if self.monitor.startup_window > cycle {
+                warnings.push(format!(
+                    "The startup window ({}) is longer than the time \
+                    it takes for the dummy source to transition from low back to high ({}).",
+                    humantime::format_duration(self.monitor.startup_window),
+                    humantime::format_duration(cycle)
+                ));
+            }
+        }
+
+        warnings
+    }
+
     /// Saves the current settings to the specified configuration file path.
     ///
     /// # Parameters

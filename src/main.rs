@@ -105,6 +105,10 @@ fn main() -> process::ExitCode {
         }
     }
 
+    for warning in settings.warnings_check() {
+        logging::tseprintln!(settings.disable_timestamps, "Warning: {warning}");
+    }
+
     if cli.save {
         return match settings.save(&config_file) {
             Ok(()) => {
