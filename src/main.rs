@@ -412,6 +412,7 @@ fn build_notifiers(settings: &settings::Settings) -> Vec<Box<dyn notify::Statefu
 fn display_settings(settings: &settings::Settings) {
     println!();
     println!("{:#?}", settings.monitor);
+    println!();
 
     match settings.monitor.source {
         source::ChoiceOfInputSource::Gpio => {
