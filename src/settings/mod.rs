@@ -76,6 +76,10 @@ impl Settings {
         self.debug = cli.debug;
         self.dry_run = cli.dry_run;
 
+        if self.debug {
+            self.verbose = true;
+        }
+
         if let Some(source) = &cli.source {
             self.monitor.source = *source;
         }
