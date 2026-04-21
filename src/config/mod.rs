@@ -6,14 +6,13 @@ mod strings;
 pub use backends::{BatsignConfig, CommandConfig, PrintlnConfig, SlackConfig};
 pub use strings::MessageStrings;
 
-use serde::{Deserialize, Serialize};
 use std::time;
 
 use crate::settings;
 use crate::source;
 
 /// Configuration file structure.
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct Config {
     /// Configuration related to the monitor loop.
@@ -82,7 +81,7 @@ impl From<&settings::Settings> for Config {
 }
 
 /// Configuration related to the monitoring main loop of the program.
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct MonitorConfig {
     /// The input source to use for monitoring.
@@ -101,7 +100,7 @@ pub struct MonitorConfig {
 }
 
 /// Configuration related to the GPIO input source.
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct GpioConfig {
     /// The GPIO pin number to which the burner is connected.
@@ -109,7 +108,7 @@ pub struct GpioConfig {
 }
 
 /// Configuration related to the dummy input source.
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 #[serde(default)]
 pub struct DummyInputSourceConfig {
     /// Modulus value to determine the cycle length of the readings.

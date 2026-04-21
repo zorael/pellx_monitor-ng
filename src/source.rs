@@ -2,7 +2,6 @@
 
 use clap::ValueEnum;
 use rppal::gpio;
-use serde::{Deserialize, Serialize};
 
 /// Enum representing a reading from an input source, which can be either
 /// electrically LOW or HIGH.
@@ -41,7 +40,7 @@ pub trait InputSource {
 }
 
 /// Enum representing the choice of input source to use for monitoring.
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, ValueEnum, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, ValueEnum, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ChoiceOfInputSource {
     // Don't make this a /// documentation comment or the --help listing wlil be too big.
