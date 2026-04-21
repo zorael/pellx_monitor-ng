@@ -485,7 +485,7 @@ fn run_loop(
             }
         }
 
-        end_loop(&mut ctx, settings.monitor.loop_interval);
+        end_loop(&mut ctx, *settings.monitor.loop_interval);
     }
 }
 
@@ -523,7 +523,7 @@ fn handle_low_reading(
         return;
     };
 
-    if time_of_startup.instant.elapsed() >= settings.monitor.startup_window {
+    if time_of_startup.instant.elapsed() >= *settings.monitor.startup_window {
         // Startup succeeded, can notify success
         if settings.verbose {
             println!();
@@ -577,7 +577,7 @@ fn handle_high_reading(
         }
 
         if let Some(t) = ctx.time_of_startup
-            && t.instant.elapsed() < settings.monitor.startup_window
+            && t.instant.elapsed() < *settings.monitor.startup_window
         {
             // We went high again before startup duration elapsed, this is a startup failure
             let result =

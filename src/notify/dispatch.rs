@@ -164,7 +164,7 @@ pub fn send_retries(
                     continue;
                 };
 
-                if t.instant.elapsed() < settings.monitor.startup_window {
+                if t.instant.elapsed() < *settings.monitor.startup_window {
                     // Not enough time has passed to be able to call it a startup failure
                     continue;
                 }

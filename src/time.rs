@@ -1,5 +1,7 @@
 //! Time-related utilities.
 
+use std::fmt;
+use std::ops;
 use std::time;
 
 /// A timestamp that allows for measuring both wall-clock time and elapsed time.
@@ -35,5 +37,25 @@ pub fn fuzzy_datestamp_of(when: &chrono::DateTime<chrono::Local>) -> String {
         when.format("%Y-%m-%d %H:%M:%S").to_string()
     } else {
         when.format("%H:%M:%S").to_string()
+    }
+}
+
+/// Newtype wrapper around a `time::Duration` that allows for human-readable debug output.
+#[derive(Copy, Clone)]
+pub struct HumanDuration(pub time::Duration);
+
+impl fmt::Debug for HumanDuration {
+    /// Formats the duration in a human-readable way, e.g. "1h" instead of "3600s".
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", humantime::format_duration(self.0))
+    }
+}
+
+impl ops::Deref for HumanDuration {
+    type Target = time::Duration;
+
+    /// Allows for dereferencing the `HumanDuration` to access the inner `time::Duration`.
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }

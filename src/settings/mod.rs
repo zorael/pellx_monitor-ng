@@ -7,12 +7,13 @@ pub use backends::{BatsignSettings, CommandSettings, PrintlnSettings, SlackSetti
 pub use strings::MessageStrings;
 
 use std::path;
-use std::time;
+use std::time as std_time;
 
 use crate::cli;
 use crate::config;
 use crate::defaults;
 use crate::source;
+use crate::time;
 
 /// Program-wide settings struct, housing all runtime settings.
 #[derive(Default)]
@@ -129,17 +130,17 @@ impl Settings {
         if self.monitor.source == source::ChoiceOfInputSource::Dummy
             && self.dummy_source.modulus > self.dummy_source.threshold
         {
-            let modulus = time::Duration::from_secs(u64::from(self.dummy_source.modulus));
-            let low_cycle = self.monitor.loop_interval
+            let modulus = std_time::Duration::from_secs(u64::from(self.dummy_source.modulus));
+            let low_cycle = *self.monitor.loop_interval
                 * (self.dummy_source.modulus - self.dummy_source.threshold);
 
             if let Some(low_cycle) = modulus.checked_sub(low_cycle)
-                && self.monitor.startup_window > low_cycle
+                && *self.monitor.startup_window > low_cycle
             {
                 warnings.push(format!(
                     "The startup window ({}) is longer than the time the \
                     dummy source spends in low before transitioning to high ({}).",
-                    humantime::format_duration(self.monitor.startup_window),
+                    humantime::format_duration(*self.monitor.startup_window),
                     humantime::format_duration(low_cycle)
                 ));
             }
@@ -173,13 +174,13 @@ pub struct MonitorSettings {
     pub source: source::ChoiceOfInputSource,
 
     /// The interval at which to loop and check the input source for changes.
-    pub loop_interval: time::Duration,
+    pub loop_interval: time::HumanDuration,
 
     /// How much time has to pass after a startup is detected before the
     /// monitor accepts the startup as successful.
     ///
     /// Any notifications will only be pushed after this time has passed.
-    pub startup_window: time::Duration,
+    pub startup_window: time::HumanDuration,
 }
 
 impl Default for MonitorSettings {
@@ -187,8 +188,8 @@ impl Default for MonitorSettings {
     fn default() -> Self {
         Self {
             source: source::ChoiceOfInputSource::Gpio,
-            loop_interval: defaults::monitor::LOOP_INTERVAL,
-            startup_window: defaults::monitor::STARTUP_WINDOW,
+            loop_interval: time::HumanDuration(defaults::monitor::LOOP_INTERVAL),
+            startup_window: time::HumanDuration(defaults::monitor::STARTUP_WINDOW),
         }
     }
 }
@@ -197,11 +198,11 @@ impl MonitorSettings {
     /// Applies configuration to the monitor settings, as read from disk.
     pub fn apply_config(&mut self, config: &config::MonitorConfig) {
         if let Some(loop_interval) = config.loop_interval {
-            self.loop_interval = loop_interval;
+            self.loop_interval = time::HumanDuration(loop_interval);
         }
 
         if let Some(startup_window) = config.startup_window {
-            self.startup_window = startup_window;
+            self.startup_window = time::HumanDuration(startup_window);
         }
 
         self.source = config.source;

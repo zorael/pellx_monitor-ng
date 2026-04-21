@@ -45,8 +45,8 @@ impl From<&settings::Settings> for Config {
         Self {
             monitor: MonitorConfig {
                 source: settings.monitor.source,
-                loop_interval: Some(settings.monitor.loop_interval),
-                startup_window: Some(settings.monitor.startup_window),
+                loop_interval: Some(*settings.monitor.loop_interval),
+                startup_window: Some(*settings.monitor.startup_window),
             },
             gpio: GpioConfig {
                 pin: Some(settings.gpio.pin),
