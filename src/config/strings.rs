@@ -1,4 +1,5 @@
-//! Configuration file definitions for message strings.
+/// Configuration file definitions for message strings.
+use serde::{Deserialize, Serialize};
 
 use crate::settings;
 
@@ -6,7 +7,7 @@ use crate::settings;
 ///
 /// The layout of this struct must mirror that of `settings::MessageStrings`,
 /// as it is used to apply configuration from disk to the in-memory settings.
-#[derive(Default, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct MessageStrings {
     /// Header for alert notifications.

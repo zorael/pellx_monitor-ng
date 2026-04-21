@@ -1,7 +1,9 @@
 //! Backend configuration structures.
 
+use serde::{Deserialize, Serialize};
+
 /// Configuration related to the println notifier backend.
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PrintlnConfig {
     /// Custom message strings, used to compose notifications.
@@ -12,7 +14,7 @@ pub struct PrintlnConfig {
 }
 
 /// Configuration related to the Slack notifier backend.
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct SlackConfig {
     /// Custom message strings, used to compose notifications.
@@ -29,7 +31,7 @@ pub struct SlackConfig {
 }
 
 /// Configuration related to the Batsign notifier backend.
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct BatsignConfig {
     /// Custom message strings, used to compose notifications.
@@ -46,7 +48,7 @@ pub struct BatsignConfig {
 }
 
 /// Configuration related to the external command notifier backend.
-#[derive(Default, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct CommandConfig {
     /// Custom message strings, used to compose notifications.
