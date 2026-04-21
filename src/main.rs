@@ -447,6 +447,7 @@ fn run_loop(
 
         if at_least_one_notifier_is_due_for_retry {
             notify::send_retries(&mut notifiers, settings, &ctx.now.instant);
+            ctx.now = time::Timestamp::now(); // new snapshot after costly send_retries
         }
 
         let reading = source.read();
