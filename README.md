@@ -44,6 +44,7 @@ urls = ["https://hooks.slack.com/services/..."]
   - [`-j1`](#-j1)
 - [configuration](#configuration)
 - [strings](#strings)
+  - [placeholders](#placeholders)
 - [backends](#backends)
   - [slack](#slack)
     - [formatting messages](#formatting-messages)
@@ -182,6 +183,8 @@ footer = ""
 - `footer` is appended to the end of all messages.
 
 All of these strings are optional and can be left as an empty string `""` to disable. A message whose header is empty will not be sent, neither will a message whose body ended up empty after composing.
+
+### placeholders
 
 Messages can container certain placeholders that will be replaced with dynamic content when composing the message, such as `{fuzzy_high}` and `{fuzzy_low}` in the examples above.
 
@@ -337,6 +340,7 @@ sudo systemctl enable --now pellxd.service
 ## todo
 
 - flesh out documentation
+- document `Result` types correctly (with `# Errors`)
 
 ## license
 
