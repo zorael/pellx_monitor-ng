@@ -178,7 +178,7 @@ impl<B: backend::Backend> NotificationSender for Notifier<B> {
 }
 
 /// State for a `Notifier`.
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct NotifierState {
     /// Information about the previous failed send attempt, if any.
     pub previous_failed_send: Option<FailedSendAttempt>,
