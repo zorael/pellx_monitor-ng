@@ -4,6 +4,7 @@ mod dispatch;
 
 pub use dispatch::{send_retries, send_to_all};
 
+use std::fmt;
 use std::time;
 
 use crate::backend;
@@ -375,6 +376,19 @@ pub enum MessageType {
     /// A startup success notification, when the pellets burner started up
     /// successfully.
     StartupSuccess,
+}
+
+impl fmt::Display for MessageType {
+    /// Formats a `MessageType` variants as lowercase strings.
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            MessageType::Alert => "alert",
+            MessageType::Reminder => "reminder",
+            MessageType::StartupFailed => "startup_failed",
+            MessageType::StartupSuccess => "startup_success",
+        };
+        write!(f, "{s}")
+    }
 }
 
 /// A failed send attempt, containing information needed to retry the send.

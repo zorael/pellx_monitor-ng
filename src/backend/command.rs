@@ -93,7 +93,7 @@ impl super::Backend for CommandBackend {
     ) -> Result<Option<String>, String> {
         let command = process::Command::new(&self.command)
             .arg(body)
-            .arg(format!("{message_type:?}"))
+            .arg(message_type.to_string())
             .arg(ctx.loop_iteration.to_string())
             .arg(get_unix_timestamp(ctx.went_low_at.as_ref()).to_string())
             .arg(get_unix_timestamp(ctx.went_high_at.as_ref()).to_string())
@@ -106,16 +106,21 @@ impl super::Backend for CommandBackend {
             let mut output = String::new();
             let stdout = String::from_utf8_lossy(&command.stdout).trim().to_string();
             let stderr = String::from_utf8_lossy(&command.stderr).trim().to_string();
+            let status_code = command.status.code().unwrap_or(-1);
+
+            let _ = writeln!(
+                output,
+                "{} exited with status: {}",
+                self.command.display(),
+                status_code
+            );
 
             if !stdout.is_empty() {
-                let _ = write!(output, "STDOUT:\n{stdout}\n");
+                let _ = writeln!(output, "--- STDOUT:\n{stdout}");
             }
 
             if !stderr.is_empty() {
-                if !output.is_empty() {
-                    output.push_str("---\n");
-                }
-                let _ = write!(output, "STDERR:\n{stderr}\n");
+                let _ = writeln!(output, "--- STDERR:\n{stderr}");
             }
 
             output = output.trim().to_string();
