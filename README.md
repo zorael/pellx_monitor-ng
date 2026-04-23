@@ -1,10 +1,10 @@
 # pellxd
 
-Monitor and error-reporter of a **PellX pellets burner**.
+Monitor of a **PellX wooden pellets burner**.
 
-Intended to be run on a **Raspberry Pi-equivalent** device connected via GPIO to terminals on the controller board of a PellX burner. Terminals **1** and **2** are electrically connected when the burner is operating normally, and the circuit is broken when it is in an error state (including on power failures).
+Intended to be run on a **Raspberry Pi-equivalent** device connected via GPIO to terminals on the controller board of a PellX burner. Terminals **1** and **2** are electrically connected when the burner is operating normally, and the circuit is broken when it is in an error state (including on power failures). See [page 11 of the manual](https://www.eldkraft.se/uploads/pdf/PELLX/MANUAL-english-PELLX_20KW.pdf#page=12).
 
-A notification is sent when this is detected. The program supports sending such through four different backends; as messages sent to [**Slack**](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) channels, as short emails sent via the free [**Batsign**](https://batsign.me) service, by invocation of an **external command**, and as **terminal output** (via `println`).
+A notification is sent when this is detected. The program supports sending such through four different backends; as messages sent to [**Slack**](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) channels, as short emails sent via the free [**Batsign**](https://batsign.me) service, by invocation of an **external command**, and as normal **terminal output**.
 
 ## tl;dr
 
@@ -19,7 +19,6 @@ Options:
   -v, --verbose             Print some additional information
   -d, --debug               Print much more additional information
       --dry-run             Perform a dry run, echoing what would be done
-  -V, --version             Display version information and exit
 ```
 
 Create a [configuration file](#configuration) by passing `--save`.
@@ -35,6 +34,10 @@ source = "gpio"
 [slack]
 enabled = true
 urls = ["https://hooks.slack.com/services/..."]
+```
+
+```sh
+cargo run -- --verbose
 ```
 
 ## toc
@@ -54,7 +57,8 @@ urls = ["https://hooks.slack.com/services/..."]
     - [arguments](#arguments)
   - [`println`](#println)
 - [systemd](#systemd)
-  - [enable and start](#enable-and-start)
+  - [enable now](#enable-now)
+  - [journal logs](#journal-logs)
 - [ai](#ai)
 - [todo](#todo)
 - [license](#license)
@@ -89,7 +93,7 @@ See the [**systemd**](#systemd) section for instructions on how to set it up as 
 
 ### cross-compilation
 
-Weaker Raspberry Pi models, like the Pi Zero 2W, can *run* the program but does not have enough memory to compile it with default flags. Your alternatives are to build it in serial mode (with `-j1`) on the device itself, or to cross-compile it on a more powerful machine.
+Weaker Raspberry Pi models, like the Pi Zero 2W, can *run* the program but does not have enough memory to compile it with default flags. Your alternatives there are to either build it in serial mode (with `-j1`) on the device itself, or to cross-compile it on a more powerful machine.
 
 Regrettably, manually setting up cross-compilation can be non-trivial. As such, use of one of [`cargo-cross`](https://github.com/cross-rs/cross) or [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild) is recommended (but not required). For the latter you need to install a [**Zig**](https://ziglang.org) compiler. Refer to your repositories, alternatively install it via Homebrew (`brew install zig`).
 
@@ -117,7 +121,7 @@ Replace `release` with `debug` to transfer the binary of a `--profile=dev` build
 
 ### `-j1`
 
-This will build it in a serial mode, compiling one dependency at a time. Swap is probably still required.
+This will build it in a serial mode (`--jobs=1`), compiling one dependency at a time. Swap is probably still required.
 
 ```sh
 cargo build -j1
@@ -279,10 +283,10 @@ show_response = false
 
 #### arguments
 
-The order of arguments is as follows:
+The command-line arguments passed are as follows:
 
 1. `$1`: The composed message body, formatted with strings as defined in the configuration file
-2. `$2`: A string of the type of message, which can be one of `alert`, `reminder`, `startup_failed` or `startup_success`
+2. `$2`: A string of the type of message, which is one of `alert`, `reminder`, `startup_failed` or `startup_success`
 3. `$3`: The number of times the main loop has run, starting at 0
 4. `$4`: The UNIX timestamp of when `LOW` was last read from the pellets burner, which qualifies as a desired state
 5. `$5`: The UNIX timestamp of when `HIGH` was last read from the pellets burner, which qualifies as an error state
@@ -304,7 +308,7 @@ The program lends itself to being run as a [**systemd**](https://systemd.io) ser
 
 To facilitate this, a basic service unit file is included in the repository. Copy it into `/etc/systemd/system/`, then use `systemctl edit` to modify it to point the `ExecStart` directive to the actual location of your compiled binary.
 
-> If yours is in the default location of `/usr/local/bin/pellxd`, you can skip ahead to [**enable and start**](#enable-and-start).
+> If yours is in the default location of `/usr/local/bin/pellxd`, you can skip ahead to [**enable now**](#enable-now).
 
 ```sh
 sudo cp pellxd.service /etc/systemd/system/
@@ -325,13 +329,23 @@ ExecStart=/home/user/src/pellxd/target/release/pellxd --config /home/user/.confi
 
 Be sure to include the empty `ExecStart=` line to clear the default value, as `Exec` directives are additive.
 
-### enable and start
+### enable now
 
 ```sh
 sudo systemctl enable --now pellxd.service
 ```
 
-`enable` will make the service automatically start on boot, and `--now` will make it start immediately.
+The `enable` command will make the service automatically start on boot, and the `--now` option will make it start immediately.
+
+### journal logs
+
+If you have the `println` backend enabled, its output will be captured by systemd and can be found in [**the journal**](https://wiki.archlinux.org/title/Systemd/Journal).
+
+```sh
+journalctl -u pellxd.service
+```
+
+If logs don't persist across reboots, which is common for Raspberry Pi OS to spare your SD card the extra writes, you may have to [**enable persistent logging**](https://www.google.com/search?q=systemd+how+to+enable+persistent+logging).
 
 ## ai
 
@@ -340,7 +354,8 @@ sudo systemctl enable --now pellxd.service
 ## todo
 
 - flesh out documentation
-- document `Result` types correctly (with `# Errors`)
+- *correct* documentation
+- document `Result` properly with `# Errors`
 
 ## license
 
