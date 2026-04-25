@@ -71,20 +71,28 @@ impl super::Backend for CommandBackend {
         &self.strings
     }
 
-    /// Emits a notification via the Command backend.
+    /// Executes the external command with the composed message and additional
+    /// context information as command-line arguments.
     ///
-    /// # Parameters
-    /// - `ctx`: Context of the notification.
-    /// - `body`: Composed message body to pass as argument to the external command.
-    /// - `message_type`: Type of the message being emitted.
+    /// The arguments are, in order:
+    /// 1. `$1`: The composed message body, formatted with strings as defined
+    ///    in the configuration file
+    /// 2. `$2`: A string of the type of message, which is one of `alert`,
+    ///    `reminder`, `startup_failed` or `startup_success`
+    /// 3. `$3`: The number of times the main loop has run, starting at 0
+    /// 4. `$4`: The UNIX timestamp of when `LOW` was last read from the
+    ///    pellets burner, which qualifies as a desired state
+    /// 5. `$5`: The UNIX timestamp of when `HIGH` was last read from the
+    ///    pellets burner, which qualifies as an error state
+    /// 6. `$6`: The UNIX timestamp of when the reading from the pellets burner
+    ///    last *changed* (regardless of the values it went from or to)
+    /// 7. `$7`: The UNIX timestamp of when the pellets burner last tried to
+    ///    start up, which is the first `LOW` after a `HIGH`
     ///
     /// # Returns
-    /// - `Ok(Some(String))` if the command executed successfully and the
-    ///   response should be shown.
-    /// - `Ok(None)` if the command executed successfully but the response
-    ///   should not be shown.
-    /// - `Err(String)` if there was an error running the command, with an
-    ///   error message as a string.
+    /// When `show_response` is enabled, the returned string contains the
+    /// command's exit status followed by its stdout and stderr, each on its own
+    /// line(s) with a `--- STDOUT:` / `--- STDERR:` header.
     fn emit(
         &self,
         ctx: &context::Context,

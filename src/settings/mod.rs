@@ -88,10 +88,9 @@ impl Settings {
 
     /// Performs a sanity check on the settings, returning any errors found.
     ///
-    /// # Returns
-    /// - `Ok(())` if the settings are sane.
-    /// - `Err(Vec<String>)` if the settings contain errors, with a vector of
-    ///   strings describing the errors.
+    /// # Errors
+    /// Errors if any of the settings across all the backends are invalid, with
+    /// a vector of strings describing the errors.
     pub fn sanity_check(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 
@@ -154,9 +153,8 @@ impl Settings {
     /// # Parameters
     /// - `config_path`: The path to which settings should be saved.
     ///
-    /// # Returns
-    /// - `Ok(())` if saving succeeded.
-    /// - `Err(String)` if saving failed, with a string describing the error.
+    /// # Errors
+    /// Errors if writing to disk failed.
     pub fn save(&self, config_path: &path::Path) -> Result<(), String> {
         let config = config::Config::from(self);
 

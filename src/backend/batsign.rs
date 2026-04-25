@@ -80,20 +80,8 @@ impl super::Backend for BatsignBackend {
         time::Duration::from_millis(300)
     }
 
-    /// Emits a notification via the Batsign backend.
-    ///
-    /// # Parameters
-    /// - `ctx`: Context of the notification.
-    /// - `body`: Composed message body to send to the Batsign server.
-    /// - `message_type`: Type of the message being emitted.
-    ///
-    /// # Returns
-    /// - `Ok(Some(String))` if the notification was sent successfully and the
-    ///   response should be shown.
-    /// - `Ok(None)` if the notification was sent successfully but the response
-    ///   should not be shown.
-    /// - `Err(String)` if there was an error sending the notification, with
-    ///   the error message as a string.
+    /// Appends "Subject: " to the composed message and sends a HTTP POST
+    /// request to the Batsign server with the message as the request body.
     fn emit(
         &self,
         _ctx: &context::Context,

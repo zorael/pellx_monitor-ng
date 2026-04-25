@@ -44,16 +44,8 @@ impl super::Backend for PrintlnBackend {
         &self.strings
     }
 
-    /// Emits a notification via the Println backend.
-    ///
-    /// # Parameters
-    /// - `ctx`: Context of the notification.
-    /// - `body`: Composed message body to print to the terminal.
-    /// - `message_type`: Type of the message being emitted.
-    ///
-    /// # Returns
-    /// `Ok(Some(String))` containing the composed message body, for the caller
-    /// to print to the terminal.
+    /// Returns the message body as-is, faking a successful notification push,
+    /// additionally as if the backend was set up to return responses.
     fn emit(
         &self,
         _ctx: &context::Context,

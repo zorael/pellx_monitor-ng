@@ -232,12 +232,10 @@ fn resolve_config_file(cli: &cli::Cli) -> Outcome<path::PathBuf> {
 /// Failing that, the environment variable `XDG_CONFIG_HOME` is used, if set.
 /// If it is not, it finally falls back to `$HOME/.config`.
 ///
-/// # Returns
-/// - `Ok(path::PathBuf)` representing the resolved configuration directory.
-/// - `Err(String)` if resolution failed.
-///
 /// # Errors
-/// If a configuration directory could not be determined, an `Err(String)` is returned.
+/// Errors if no candidate location is set in the environment (e.g. running
+/// as a non-root user with no `$HOME`, `$XDG_CONFIG_HOME`, or
+/// `$PELLXD_CONFIG_ROOT` set).
 fn resolve_config_directory() -> Result<path::PathBuf, String> {
     if let Some(path) = env::var_os("PELLXD_CONFIG_ROOT").map(path::PathBuf::from) {
         return Ok(path);
@@ -260,9 +258,8 @@ fn resolve_config_directory() -> Result<path::PathBuf, String> {
 
 /// Attempts to load the configuration file at the specified path.
 ///
-/// # Returns
-/// - `Ok(Option<config::Config>)` representing the loaded configuration.
-/// - `Err(confy::ConfyError)` if loading failed.
+/// # Errors
+/// Errors if the configuration file exists but could not be loaded.
 fn load_config_file(config_path: &path::Path) -> Result<Option<config::Config>, confy::ConfyError> {
     if !config_path.exists() {
         return Ok(None);

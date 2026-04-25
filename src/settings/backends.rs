@@ -41,10 +41,8 @@ impl SlackSettings {
     /// Performs a sanity check on the Slack settings, returning an error if
     /// any are found.
     ///
-    /// # Returns
-    /// - `Ok(())` if the settings are sane.
-    /// - `Err(String)` if the settings contain an error, with a string
-    ///   describing the error.
+    /// # Errors
+    /// Errors if the backend is enabled but its list of webhook URLs is empty.
     pub fn sanity_check(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());
@@ -97,10 +95,8 @@ impl BatsignSettings {
     /// Performs a sanity check on the Batsign settings, returning an error if
     /// any are found.
     ///
-    /// # Returns
-    /// - `Ok(())` if the settings are sane.
-    /// - `Err(String)` if the settings contain an error, with a string
-    ///   describing the error.
+    /// # Errors
+    /// Errors if the backend is enabled but its list of URLs is empty.
     pub fn sanity_check(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());
@@ -153,10 +149,8 @@ impl CommandSettings {
     /// Performs a sanity check on the external command settings, returning
     /// an error if any are found.
     ///
-    /// # Returns
-    /// - `Ok(())` if the settings are sane.
-    /// - `Err(String)` if the settings contain an error, with a string
-    ///   describing the error.
+    /// # Errors
+    /// Errors if the backend is enabled but its list of commands is empty.
     pub fn sanity_check(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());
@@ -205,7 +199,7 @@ impl PrintlnSettings {
     /// are found.
     ///
     /// In the case of the println backend, there are no settings, so this
-    /// simply returns `Ok(())`.
+    /// always succeeds.
     #[allow(clippy::unused_self)]
     #[allow(clippy::unnecessary_wraps)]
     pub fn sanity_check(&self) -> Result<(), String> {

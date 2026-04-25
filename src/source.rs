@@ -23,9 +23,10 @@ pub trait InputSource {
     /// Initializes the input source, performing any necessary setup that
     /// may fail (and is as such not part of a `new` constructor).
     ///
-    /// # Returns
-    /// - `Ok(())` if initialization succeeded.
-    /// - `Err(String)` if initialization failed, with a string describing the error.
+    /// # Errors
+    /// Errors if any required setup fails, typically because of resources
+    /// the input source needs (hardware access, network sockets, file handles, ...)
+    /// being unavailable.
     fn init(&mut self) -> Result<(), String>;
 
     /// Reads a `Reading` from the input source.
@@ -33,10 +34,9 @@ pub trait InputSource {
 
     /// Perform's a sanity check on the input source's configuration.
     ///
-    /// # Returns
-    /// - `Ok(())` if the configuration is sane.
-    /// - `Err(Vec<String>)` if the configuration contains errors, with a
-    ///   vector of strings describing the errors.
+    /// # Errors
+    /// Errors if any configuration errors are found, with a vector of strings
+    /// describing each error. This is highly dependant on the specific input source.
     fn sanity_check(&self) -> Result<(), Vec<String>>;
 }
 
@@ -80,6 +80,10 @@ impl InputSource for GpioInputSource {
     }
 
     /// Initializes the GPIO input source.
+    ///
+    /// # Errors
+    /// Errors if initialization of the GPIO pin fails.
+    /// See [`GpioInputSource::sub_init`] for details.
     fn init(&mut self) -> Result<(), String> {
         match self.sub_init() {
             Ok(()) => Ok(()),
@@ -102,10 +106,8 @@ impl InputSource for GpioInputSource {
 
     /// Performs a sanity check on the GPIO input source's configuration.
     ///
-    /// # Returns
-    /// - `Ok(())` if the configuration is sane.
-    /// - `Err(Vec<String>)` if the configuration contains errors,
-    ///   with a vector of strings describing the errors.
+    /// # Errors
+    /// Errors if the GPIO pin number is invalid (greater than 40).
     fn sanity_check(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 
@@ -124,10 +126,9 @@ impl InputSource for GpioInputSource {
 impl GpioInputSource {
     /// Helper function to perform the actual initialization of the GPIO pin.
     ///
-    /// # Returns
-    /// - `Ok(())` if initialization succeeded.
-    /// - `Err(gpio::Error)` if initialization failed, with the error from the
-    ///   `rppal` crate.
+    /// # Errors
+    /// Errors if initialization of the GPIO pin fails, with the error from the
+    /// `rppal` crate.
     fn sub_init(&mut self) -> Result<(), gpio::Error> {
         let gpio = gpio::Gpio::new()?;
         let pin = gpio.get(self.pin_number)?.into_input_pullup();
@@ -174,7 +175,8 @@ impl InputSource for DummyInputSource {
 
     /// Initializes the dummy input source.
     ///
-    /// Literally does nothing.
+    /// Always returns `Ok(())` since there is no actual initialization needed
+    /// for the dummy input source.
     fn init(&mut self) -> Result<(), String> {
         Ok(())
     }
@@ -192,10 +194,9 @@ impl InputSource for DummyInputSource {
 
     /// Performs a sanity check on the dummy input source's configuration.
     ///
-    /// # Returns
-    /// - `Ok(())` if the configuration is sane.
-    /// - `Err(Vec<String>)` if the configuration contains errors,
-    ///   with a vector of strings describing the errors.
+    /// # Errors
+    /// Errors if the modulus is zero or if the threshold is greater than the modulus,
+    /// with a vector of strings describing each error.
     fn sanity_check(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 

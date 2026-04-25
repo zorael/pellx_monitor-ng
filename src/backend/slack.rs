@@ -136,20 +136,8 @@ impl super::Backend for SlackBackend {
         time::Duration::from_millis(300)
     }
 
-    /// Emits a notification via the Slack backend.
-    ///
-    /// # Parameters
-    /// - `ctx`: Context of the notification.
-    /// - `body`: The JSON string containing the composed message.
-    /// - `message_type`: Type of the message being emitted.
-    ///
-    /// # Returns
-    /// - `Ok(Some(String))` if the notification was sent successfully and the
-    ///   response should be shown.
-    /// - `Ok(None)` if the notification was sent successfully but the response
-    ///   should not be shown.
-    /// - `Err(String)` if there was an error sending the notification, with
-    ///   the error message as a string.
+    /// Wraps the composed message in a JSON object and sends a HTTP POST
+    /// request to the Slack webhook URL with the JSON as the request body.
     fn emit(
         &self,
         _ctx: &context::Context,

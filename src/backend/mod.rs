@@ -77,12 +77,12 @@ pub trait Backend {
     /// - `message_type`: Type of the message being emitted.
     ///
     /// # Returns
-    /// - `Ok(Some(String))` if the notification was sent successfully and the
-    ///   response should be shown.
-    /// - `Ok(None)` if the notification was sent successfully but the response
-    ///   should not be shown.
-    /// - `Err(String)` if there was an error sending the notification, with
-    ///   the error message as a string.
+    /// - `Some(response)` if the notification was sent successfully and the
+    ///   backend was set up to return responses.
+    /// - `None` if the notification was sent successfully otherwise.
+    ///
+    /// # Errors
+    /// Errors if there was an error sending the notification.
     fn emit(
         &self,
         ctx: &context::Context,
