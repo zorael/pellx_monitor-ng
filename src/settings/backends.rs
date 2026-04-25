@@ -51,7 +51,7 @@ impl SlackSettings {
         }
 
         if self.urls.is_empty() {
-            Err("URL must not be empty".to_string())
+            Err("List of webhook URLs must not be empty".to_string())
         } else {
             Ok(())
         }
@@ -107,7 +107,7 @@ impl BatsignSettings {
         }
 
         if self.urls.is_empty() {
-            Err("URL must not be empty".to_string())
+            Err("List of URLs must not be empty".to_string())
         } else {
             Ok(())
         }
@@ -163,7 +163,7 @@ impl CommandSettings {
         }
 
         if self.commands.is_empty() {
-            Err("Commands must not be empty".to_string())
+            Err("List of commands must not be empty".to_string())
         } else {
             Ok(())
         }
