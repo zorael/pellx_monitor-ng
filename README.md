@@ -93,7 +93,7 @@ See the [**systemd**](#systemd) section for instructions on how to set it up as 
 
 ### cross-compilation
 
-Weaker Raspberry Pi models, like the Pi Zero 2W, can *run* the program but does not have enough memory to compile it with default flags. Your alternatives there are to either build it in serial mode (with `-j1`) on the device itself, or to cross-compile it on a more powerful machine.
+Weaker Raspberry Pi models, such as [**the Pi Zero 2W**](https://www.raspberrypi.com/products/raspberry-pi-zero-2-w), can *run* the program but may not have enough memory to compile it with default flags. Your alternatives there are to either build it in serial mode (with `-j1`) on the device itself, or to cross-compile it on a more powerful machine.
 
 Regrettably, manually setting up cross-compilation can be non-trivial. As such, use of one of [`cargo-cross`](https://github.com/cross-rs/cross) or [`cargo-zigbuild`](https://github.com/rust-cross/cargo-zigbuild) is recommended (but not required). For the latter you need to install a [**Zig**](https://ziglang.org) compiler. Refer to your repositories, alternatively install it via Homebrew (`brew install zig`).
 
@@ -266,11 +266,13 @@ It is not possible to format text in Batsign emails with HTML markup. The best y
 
 ### external command
 
-You can also have the program execute an external command as a way to push notifications, although there are several caveats.
+You can have the program execute external commands as a way to push notifications, although there are several caveats.
 
-- The command run will be passed several arguments in a specific hardcoded order, and it is unlikely that it will immediately suit whatever notification program you want to use. Realistically what you will end up doing is writing some glue-layer script that maps the arguments to something the notification program can use. (Remember to `chmod` the script executable `+x`.)
+- The commands run will be passed several arguments in a specific hardcoded order, and it is unlikely that this will immediately suit whatever notification program you want to use. Realistically what you will end up doing is writing some glue-layer scripts that map the arguments to something the notifying programs can use. (Remember to `chmod` the scripts executable `+x`.)
 
-- If you run the project binary as root, the external command specified will in turn also be run as root. If you need it to be run as a different user, you will have to recurse into it with something like `systemd-run` or `su`.
+- If you run the project binary as root, the external commands executed will in turn also be run as root. If you need them to be run as a different user, you will have to wrap or recurse into them with something like `systemd-run` or `su`.
+
+Command paths must be quoted. You may enter any number of commands as long as you separate the individual strings with a comma.
 
 ```toml
 [command]
@@ -295,7 +297,7 @@ The command-line arguments passed are as follows:
 
 ### `println`
 
-The `println` backend is mostly there for logging and debugging purposes.
+The `println` backend is mostly there for logging purposes.
 
 ```toml
 [println]
@@ -304,11 +306,11 @@ enabled = true
 
 ## systemd
 
-The program lends itself to being run as a [**systemd**](https://systemd.io) service. This allows it to be automatically started on boot.
+The program lends itself to being run as a [**systemd**](https://systemd.io) service. This allows it to be automatically started on boot, and be restarted in the hitherto unknown case of a crash.
 
 To facilitate this, a basic service unit file is included in the repository. Copy it into `/etc/systemd/system/`, then use `systemctl edit` to modify it to point the `ExecStart` directive to the actual location of your compiled binary.
 
-> If yours is in the default location of `/usr/local/bin/pellxd`, you can skip ahead to [**enable now**](#enable-now).
+> If yours is in the default path of `/usr/local/bin/pellxd`, you can skip ahead to [**enable now**](#enable-now).
 
 ```sh
 sudo cp pellxd.service /etc/systemd/system/
@@ -321,13 +323,15 @@ sudo systemctl edit pellxd.service
 
 [Service]
 ExecStart=
-ExecStart=/home/user/src/pellxd/target/release/pellxd --config /home/user/.config/pellxd.toml
+ExecStart=/home/user/src/pellxd/target/release/pellxd --verbose --config /home/user/.config/pellxd.toml
 
 ### Edits below this comment will be discarded
 ### [...]
 ```
 
 Be sure to include the empty `ExecStart=` line to clear the default value, as `Exec` directives are additive.
+
+Do not include the `--debug` flag in the systemd service `ExecStart`, as it will make the program produce a very large amount of output.
 
 ### enable now
 
@@ -353,9 +357,7 @@ If logs don't persist across reboots, which is common for Raspberry Pi OS to spa
 
 ## todo
 
-- flesh out documentation
-- *correct* documentation
-- document `Result` properly with `# Errors`
+- flesh out documentation (*correct* documentation)
 
 ## license
 
