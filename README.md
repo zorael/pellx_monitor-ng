@@ -4,7 +4,7 @@ Monitor of a **PellX wooden pellets burner**.
 
 Intended to be run on a **Raspberry Pi-equivalent** device connected via GPIO to terminals on the controller board of a PellX burner. Terminals **1** and **2** are electrically connected when the burner is operating normally, and the circuit is broken when it is in an error state (including on power failures). See [page 11 of the manual](https://www.eldkraft.se/uploads/pdf/PELLX/MANUAL-english-PELLX_20KW.pdf#page=12).
 
-A notification is sent when this is detected. The program supports sending such through four different backends; as messages sent to [**Slack**](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) channels, as short emails sent via the free [**Batsign**](https://batsign.me) service, by invocation of an **external command**, and as normal **terminal output**.
+A notification is sent when this is detected. The program supports sending such through four different backends; as messages sent to [**Slack**](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks) channels, as short emails sent via the free [**Batsign**](https://batsign.me) service, and by invocations of **external commands**.
 
 ## tl;dr
 
@@ -53,12 +53,12 @@ cargo run -- --verbose
     - [formatting messages](#formatting-messages)
   - [batsign](#batsign)
     - [formatting mails](#formatting-mails)
-  - [external command](#external-command)
+  - [external commands](#external-commands)
     - [arguments](#arguments)
   - [`println`](#println)
 - [systemd](#systemd)
   - [enable now](#enable-now)
-  - [journal logs](#journal-logs)
+  - [logs](#logs)
 - [ai](#ai)
 - [todo](#todo)
 - [license](#license)
@@ -208,7 +208,7 @@ Messages can container certain placeholders that will be replaced with dynamic c
 
 ## backends
 
-Notifications can be sent as messages to **Slack** channels, as short emails sent via the free **Batsign** service, by invocation of an **external command**, and as **terminal output** (via `println`). Each of these backends can be enabled or disabled independently of the others, and each has its own set of customizable strings.
+Notifications can be sent as messages to **Slack** channels, as short emails sent via the free **Batsign** service, and by invocations of **external commands**. Each of these backends can be enabled or disabled independently of the others, and each has its own set of customizable strings.
 
 ### slack
 
@@ -262,15 +262,23 @@ show_response = false
 
 #### formatting mails
 
-It is not possible to format text in Batsign emails with HTML markup. The best you can do is to get creative with Unicode characters.
+It is not possible to format text in Batsign emails with HTML markup. The best you can do is to get creative with Unicode characters, like [emoji](https://emojidb.org).
 
-### external command
+```toml
+[batsign.strings]
+alert_header = "❌ PellX burner failure"
+reminder_header = "⏰ PellX burner still in failure"
+startup_failed_header = "❌ PellX burner startup failed"
+startup_success_header = "🔥 PellX burner startup succeeded"
+```
+
+### external commands
 
 You can have the program execute external commands as a way to push notifications, although there are several caveats.
 
 - The commands run will be passed several arguments in a specific hardcoded order, and it is unlikely that this will immediately suit whatever notification program you want to use. Realistically what you will end up doing is writing some glue-layer scripts that map the arguments to something the notifying programs can use. (Remember to `chmod` the scripts executable `+x`.)
 
-- If you run the project binary as root, the external commands executed will in turn also be run as root. If you need them to be run as a different user, you will have to wrap or recurse into them with something like `systemd-run` or `su`.
+- If you run the project binary as root, the external commands executed will in turn also be run as root. If you need them to be run as a different user, you will have to wrap them or have them recurse into themselves with something like `systemd-run` or `su`.
 
 Command paths must be quoted. You may enter any number of commands as long as you separate the individual strings with a comma.
 
@@ -295,9 +303,11 @@ The command-line arguments passed are as follows:
 6. `$6`: The UNIX timestamp of when the reading from the pellets burner last *changed* (regardless of the values it went from or to)
 7. `$7`: The UNIX timestamp of when the pellets burner last tried to start up, which is the first `LOW` after a `HIGH`
 
+In cases where there is no UNIX timestamp to provide, the value passed will instead be `0`.
+
 ### `println`
 
-The `println` backend is mostly there for logging purposes.
+The additional `println` backend is intended for logging and debugging purposes. It will print the composed message body to the terminal.
 
 ```toml
 [println]
@@ -306,7 +316,7 @@ enabled = true
 
 ## systemd
 
-The program lends itself to being run as a [**systemd**](https://systemd.io) service. This allows it to be automatically started on boot, and be restarted in the hitherto unknown case of a crash.
+The program lends itself to being run as a [**systemd**](https://systemd.io) service. This allows it to be automatically started on boot, and be restarted in the case of a crash.
 
 To facilitate this, a basic service unit file is included in the repository. Copy it into `/etc/systemd/system/`, then use `systemctl edit` to modify it to point the `ExecStart` directive to the actual location of your compiled binary.
 
@@ -341,15 +351,15 @@ sudo systemctl enable --now pellxd.service
 
 The `enable` command will make the service automatically start on boot, and the `--now` option will make it start immediately.
 
-### journal logs
+### logs
 
-If you have the `println` backend enabled, its output will be captured by systemd and can be found in [**the journal**](https://wiki.archlinux.org/title/Systemd/Journal).
+If the program is run via systemd, the output of the program can be found in [**the journal**](https://wiki.archlinux.org/title/Systemd/Journal).
 
 ```sh
 journalctl -u pellxd.service
 ```
 
-If logs don't persist across reboots, which is common for Raspberry Pi OS to spare your SD card the extra writes, you may have to [**enable persistent logging**](https://www.google.com/search?q=systemd+how+to+enable+persistent+logging).
+Logs will probably not persist across reboots. This is a common setting for Raspberry Pi OS to spare your SD card the extra writes. If logs spanning multiple boots are desirable, you will have to [**enable persistent logging**](https://www.google.com/search?q=systemd+how+to+enable+persistent+logging).
 
 ## ai
 
